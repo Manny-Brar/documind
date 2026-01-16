@@ -41,3 +41,6 @@ coverage
 
 # Prisma
 packages/db/prisma/migrations/**/migration_lock.toml
+
+# Nelson Muntz local state files
+.claude/*.local.md
