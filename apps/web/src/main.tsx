@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider, createRouter } from "@tanstack/react-router";
 import { routeTree } from "./routeTree.gen";
 import { trpc, trpcClient } from "./lib/trpc";
+import { ToastProvider } from "./components/toast";
 import "./index.css";
 
 // Create React Query client
@@ -37,7 +38,9 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <trpc.Provider client={trpcClient} queryClient={queryClient}>
       <QueryClientProvider client={queryClient}>
-        <RouterProvider router={router} />
+        <ToastProvider>
+          <RouterProvider router={router} />
+        </ToastProvider>
       </QueryClientProvider>
     </trpc.Provider>
   </StrictMode>

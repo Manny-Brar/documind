@@ -4,6 +4,7 @@ import { Button, Card, Badge } from "@documind/ui";
 import { trpc } from "../../lib/trpc";
 import { useOrg } from "../../components/layout/dashboard-layout";
 import { DocumentViewer } from "../../components/document-viewer";
+import { useToast } from "../../components/toast";
 
 export const Route = createFileRoute("/_authenticated/documents")({
   component: DocumentsPage,
@@ -48,12 +49,22 @@ interface ViewableDocument {
   mimeType: string;
 }
 
+// Upload progress tracking
+interface UploadProgress {
+  filename: string;
+  progress: number; // 0-100
+  status: "uploading" | "processing" | "complete" | "error";
+  error?: string;
+}
+
 function DocumentsPage() {
   const org = useOrg();
   const utils = trpc.useUtils();
+  const toast = useToast();
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [uploadingFiles, setUploadingFiles] = useState<File[]>([]);
+  const [uploadProgress, setUploadProgress] = useState<Record<string, UploadProgress>>({});
   const [viewingDocument, setViewingDocument] = useState<ViewableDocument | null>(null);
 
   // Fetch documents
@@ -76,13 +87,69 @@ function DocumentsPage() {
   const deleteDoc = trpc.documents.delete.useMutation({
     onSuccess: () => {
       utils.documents.list.invalidate();
+      toast.success("Document deleted", "The document has been removed");
+    },
+    onError: (err) => {
+      toast.error("Delete failed", err.message);
     },
   });
+
+  // Upload file with progress tracking
+  const uploadWithProgress = useCallback(
+    (file: File, url: string, headers: Record<string, string>): Promise<void> => {
+      return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+
+        xhr.upload.addEventListener("progress", (event) => {
+          if (event.lengthComputable) {
+            const progress = Math.round((event.loaded / event.total) * 100);
+            setUploadProgress((prev) => ({
+              ...prev,
+              [file.name]: { filename: file.name, progress, status: "uploading" },
+            }));
+          }
+        });
+
+        xhr.addEventListener("load", () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            setUploadProgress((prev) => ({
+              ...prev,
+              [file.name]: { filename: file.name, progress: 100, status: "processing" },
+            }));
+            resolve();
+          } else {
+            reject(new Error(`Upload failed: ${xhr.statusText}`));
+          }
+        });
+
+        xhr.addEventListener("error", () => {
+          reject(new Error("Network error during upload"));
+        });
+
+        xhr.open("PUT", url);
+        Object.entries(headers).forEach(([key, value]) => {
+          xhr.setRequestHeader(key, value);
+        });
+        xhr.send(file);
+      });
+    },
+    []
+  );
 
   // Handle file upload
   const handleUpload = useCallback(async (files: FileList | File[]) => {
     const fileArray = Array.from(files);
     setUploadingFiles(fileArray);
+
+    // Initialize progress for all files
+    const initialProgress: Record<string, UploadProgress> = {};
+    fileArray.forEach((file) => {
+      initialProgress[file.name] = { filename: file.name, progress: 0, status: "uploading" };
+    });
+    setUploadProgress(initialProgress);
+
+    let successCount = 0;
+    let errorCount = 0;
 
     for (const file of fileArray) {
       try {
@@ -96,33 +163,56 @@ function DocumentsPage() {
 
         // Upload file to signed URL (GCS) or fallback endpoint
         if (uploadData.useSignedUrl) {
-          // Direct upload to GCS using signed URL
-          const uploadResponse = await fetch(uploadData.uploadUrl, {
-            method: "PUT",
-            headers: uploadData.headers,
-            body: file,
-          });
-
-          if (!uploadResponse.ok) {
-            throw new Error(`Upload failed: ${uploadResponse.statusText}`);
-          }
+          await uploadWithProgress(file, uploadData.uploadUrl, uploadData.headers);
         }
-        // Note: If useSignedUrl is false, we're in fallback mode
-        // The file would need to be uploaded to /api/upload/:id endpoint
-        // For now, we'll just confirm the upload record exists
 
         // Confirm upload completed
         await confirmUpload.mutateAsync({
           documentId: uploadData.documentId,
         });
+
+        // Mark as complete
+        setUploadProgress((prev) => ({
+          ...prev,
+          [file.name]: { filename: file.name, progress: 100, status: "complete" },
+        }));
+        successCount++;
       } catch (err) {
         console.error("Upload failed:", err);
+        setUploadProgress((prev) => ({
+          ...prev,
+          [file.name]: {
+            filename: file.name,
+            progress: 0,
+            status: "error",
+            error: err instanceof Error ? err.message : "Upload failed",
+          },
+        }));
+        errorCount++;
       }
     }
 
-    setUploadingFiles([]);
-    setShowUploadModal(false);
-  }, [org.id, getUploadUrl, confirmUpload]);
+    // Show toast summary
+    if (successCount > 0) {
+      toast.success(
+        `${successCount} file${successCount > 1 ? "s" : ""} uploaded`,
+        "Documents are being processed for search"
+      );
+    }
+    if (errorCount > 0) {
+      toast.error(
+        `${errorCount} upload${errorCount > 1 ? "s" : ""} failed`,
+        "Please try again or check file types"
+      );
+    }
+
+    // Clear after a short delay
+    setTimeout(() => {
+      setUploadingFiles([]);
+      setUploadProgress({});
+      setShowUploadModal(false);
+    }, 1500);
+  }, [org.id, getUploadUrl, confirmUpload, uploadWithProgress, toast]);
 
   // Drag and drop handlers
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -224,15 +314,48 @@ function DocumentsPage() {
                 </p>
               </div>
 
-              {/* Uploading files */}
+              {/* Uploading files with progress */}
               {uploadingFiles.length > 0 && (
-                <div className="mt-4 space-y-2">
-                  {uploadingFiles.map((file, i) => (
-                    <div key={i} className="flex items-center gap-3 p-3 bg-gray-50 rounded">
-                      <div className="h-6 w-6 animate-spin border-2 border-primary border-t-transparent rounded-full" />
-                      <span className="text-sm truncate">{file.name}</span>
-                    </div>
-                  ))}
+                <div className="mt-4 space-y-3">
+                  {uploadingFiles.map((file) => {
+                    const progress = uploadProgress[file.name];
+                    const status = progress?.status ?? "uploading";
+                    const percent = progress?.progress ?? 0;
+
+                    return (
+                      <div key={file.name} className="p-3 bg-gray-50 border border-gray-200 rounded">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium truncate flex-1">{file.name}</span>
+                          <span className="text-xs text-muted-foreground ml-2 shrink-0">
+                            {status === "complete" ? (
+                              <span className="text-green-600 font-medium">Complete</span>
+                            ) : status === "error" ? (
+                              <span className="text-red-600 font-medium">Failed</span>
+                            ) : status === "processing" ? (
+                              "Processing..."
+                            ) : (
+                              `${percent}%`
+                            )}
+                          </span>
+                        </div>
+                        <div className="h-2 bg-gray-200 rounded overflow-hidden">
+                          <div
+                            className={`h-full transition-all duration-300 ${
+                              status === "complete"
+                                ? "bg-green-500"
+                                : status === "error"
+                                ? "bg-red-500"
+                                : "bg-primary"
+                            }`}
+                            style={{ width: `${percent}%` }}
+                          />
+                        </div>
+                        {status === "error" && progress?.error && (
+                          <p className="text-xs text-red-600 mt-1">{progress.error}</p>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </Card>
