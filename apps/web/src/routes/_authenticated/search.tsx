@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Input, Button, Card, Badge } from "@documind/ui";
 import { trpc } from "../../lib/trpc";
 import { useOrg } from "../../components/layout/dashboard-layout";
+import { DocumentViewer } from "../../components/document-viewer";
 
 export const Route = createFileRoute("/_authenticated/search")({
   component: SearchPage,
@@ -30,9 +31,68 @@ function formatDate(date: Date | string): string {
   return d.toLocaleDateString();
 }
 
+/**
+ * Highlights query terms in a snippet
+ */
+function HighlightedSnippet({ snippet, query }: { snippet: string; query: string }) {
+  if (!query.trim()) {
+    return <p className="text-sm text-muted-foreground mt-1">{snippet}</p>;
+  }
+
+  // Extract words from query (simple tokenization)
+  const queryWords = query
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((word) => word.length > 2);
+
+  if (queryWords.length === 0) {
+    return <p className="text-sm text-muted-foreground mt-1">{snippet}</p>;
+  }
+
+  // Create a regex pattern for highlighting
+  const pattern = new RegExp(`(${queryWords.map(w => w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'gi');
+  const parts = snippet.split(pattern);
+
+  return (
+    <p className="text-sm text-muted-foreground mt-1">
+      {parts.map((part, i) => {
+        const isMatch = queryWords.some(
+          (word) => part.toLowerCase() === word.toLowerCase()
+        );
+        return isMatch ? (
+          <mark key={i} className="bg-yellow-200 px-0.5 rounded">
+            {part}
+          </mark>
+        ) : (
+          <span key={i}>{part}</span>
+        );
+      })}
+    </p>
+  );
+}
+
+// Document type for viewer
+interface ViewableDocument {
+  id: string;
+  filename: string;
+  fileType: string;
+  mimeType: string;
+}
+
+// MIME type mapping
+const MIME_TYPES: Record<string, string> = {
+  pdf: "application/pdf",
+  docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  txt: "text/plain",
+  md: "text/markdown",
+};
+
 function SearchPage() {
   const org = useOrg();
   const [query, setQuery] = useState("");
+  const [viewingDocument, setViewingDocument] = useState<ViewableDocument | null>(null);
   const [searchResults, setSearchResults] = useState<{
     results: Array<{
       documentId: string;
@@ -179,9 +239,15 @@ function SearchPage() {
               {searchResults.results.map((result, i) => {
                 const fileIcon = FILE_ICONS[result.fileType] ?? { bg: "bg-gray-100", color: "text-gray-600", label: "FILE" };
                 return (
-                  <div
+                  <button
                     key={i}
-                    className="flex items-start gap-4 p-4 hover:bg-surface-yellow transition-colors cursor-pointer"
+                    className="w-full flex items-start gap-4 p-4 hover:bg-surface-yellow transition-colors cursor-pointer text-left"
+                    onClick={() => setViewingDocument({
+                      id: result.documentId,
+                      filename: result.filename,
+                      fileType: result.fileType,
+                      mimeType: MIME_TYPES[result.fileType] ?? "application/octet-stream",
+                    })}
                   >
                     {/* File Icon */}
                     <div className={`w-10 h-10 flex items-center justify-center border-2 border-black ${fileIcon.bg} shadow-neo-sm shrink-0`}>
@@ -191,18 +257,26 @@ function SearchPage() {
                     {/* Result Info */}
                     <div className="flex-1 min-w-0">
                       <p className="font-bold">{result.filename}</p>
-                      <p className="text-sm text-muted-foreground mt-1">{result.snippet}</p>
+                      <HighlightedSnippet snippet={result.snippet} query={query} />
                       {result.pageNumber && (
                         <Badge variant="outline" className="mt-2">Page {result.pageNumber}</Badge>
                       )}
                     </div>
 
-                    {/* Score */}
-                    <div className="text-right">
-                      <div className="text-sm font-bold">{Math.round(result.score * 100)}%</div>
-                      <div className="text-xs text-muted-foreground">relevance</div>
+                    {/* Score & Actions */}
+                    <div className="flex items-center gap-4">
+                      <div className="text-right">
+                        <div className="text-sm font-bold">{Math.round(result.score * 100)}%</div>
+                        <div className="text-xs text-muted-foreground">relevance</div>
+                      </div>
+                      <div className="w-8 h-8 flex items-center justify-center border-2 border-black bg-white hover:bg-surface-yellow transition-colors">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                      </div>
                     </div>
-                  </div>
+                  </button>
                 );
               })}
             </Card>
@@ -264,6 +338,17 @@ function SearchPage() {
             </p>
           </div>
         </Card>
+      )}
+
+      {/* Document Viewer Modal */}
+      {viewingDocument && (
+        <DocumentViewer
+          documentId={viewingDocument.id}
+          filename={viewingDocument.filename}
+          fileType={viewingDocument.fileType}
+          mimeType={viewingDocument.mimeType}
+          onClose={() => setViewingDocument(null)}
+        />
       )}
     </div>
   );
