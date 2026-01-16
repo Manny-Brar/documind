@@ -5,8 +5,8 @@
   "type": "module",
   "exports": {
     "./trpc": {
-      "types": "./dist/trpc/router.d.ts",
-      "default": "./dist/trpc/router.js"
+      "types": "./dist/trpc/types.d.ts",
+      "default": "./dist/trpc/types.js"
     }
   },
   "scripts": {
