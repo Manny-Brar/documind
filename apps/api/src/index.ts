@@ -8,6 +8,10 @@ import { fastifyTRPCPlugin } from "./trpc/fastify-adapter.js";
 import { appRouter } from "./trpc/router.js";
 import { createContext } from "./trpc/context.js";
 import { auth } from "./auth.js";
+import { validateEnvOrExit } from "./lib/env.js";
+
+// Validate environment at startup
+const envConfig = validateEnvOrExit();
 
 const fastify = Fastify({
   logger: {
@@ -28,7 +32,7 @@ const fastify = Fastify({
 async function start() {
   // Register plugins
   await fastify.register(cors, {
-    origin: process.env.CORS_ORIGIN || "http://localhost:5173",
+    origin: envConfig.config.corsOrigin,
     credentials: true,
   });
 
@@ -62,12 +66,13 @@ async function start() {
   });
 
   // Start server
-  const port = parseInt(process.env.PORT || "8080", 10);
+  const port = envConfig.config.port;
   const host = process.env.HOST || "0.0.0.0";
 
   try {
     await fastify.listen({ port, host });
     fastify.log.info(`Server running at http://${host}:${port}`);
+    fastify.log.info(`GCS Storage: ${envConfig.config.hasGcsCredentials ? "Enabled" : "Fallback Mode"}`);
   } catch (err) {
     fastify.log.error(err);
     process.exit(1);

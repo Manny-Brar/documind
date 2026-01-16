@@ -2,6 +2,13 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import type { Prisma } from "@documind/db";
 import { router, protectedProcedure } from "../trpc.js";
+import {
+  generateUploadUrl,
+  generateDownloadUrl,
+  isStorageConfigured,
+  getBucketName,
+  deleteFile,
+} from "../../lib/storage.js";
 
 // Supported file types
 const SUPPORTED_FILE_TYPES = ["pdf", "docx", "pptx", "xlsx", "txt", "md"] as const;
@@ -222,6 +229,8 @@ export const documentsRouter = router({
       const timestamp = Date.now();
       const randomSuffix = Math.random().toString(36).substring(2, 8);
       const storagePath = `${input.orgId}/${timestamp}-${randomSuffix}.${fileExt}`;
+      const mimeType = input.mimeType || SUPPORTED_MIME_TYPES[fileExt] || "application/octet-stream";
+      const bucketName = getBucketName();
 
       // Create document record with pending status
       const document = await ctx.prisma.document.create({
@@ -231,8 +240,8 @@ export const documentsRouter = router({
           filename: input.filename,
           fileType: fileExt,
           fileSizeBytes: BigInt(input.fileSizeBytes),
-          mimeType: input.mimeType || SUPPORTED_MIME_TYPES[fileExt] || "application/octet-stream",
-          storageBucket: process.env.GCS_BUCKET || "documind-documents",
+          mimeType,
+          storageBucket: bucketName,
           storagePath,
           source: "upload",
           indexStatus: "pending",
@@ -244,18 +253,33 @@ export const documentsRouter = router({
         },
       });
 
-      // TODO: Generate actual GCS signed URL when GCS is configured
-      // For now, return a placeholder that will be replaced
-      const uploadUrl = process.env.GCS_BUCKET
-        ? `https://storage.googleapis.com/${document.storageBucket}/${document.storagePath}`
-        : `/api/upload/${document.id}`;
+      // Generate signed URL for direct upload to GCS
+      const signedUrlResult = await generateUploadUrl({
+        storagePath,
+        contentType: mimeType,
+        expiresInMinutes: 15,
+        contentLengthLimit: input.fileSizeBytes,
+      });
+
+      // If GCS is not configured, return fallback URL
+      if (!signedUrlResult) {
+        return {
+          documentId: document.id,
+          uploadUrl: `/api/upload/${document.id}`,
+          storagePath: document.storagePath,
+          expiresAt: new Date(Date.now() + 15 * 60 * 1000),
+          headers: { "Content-Type": mimeType },
+          useSignedUrl: false,
+        };
+      }
 
       return {
         documentId: document.id,
-        uploadUrl,
+        uploadUrl: signedUrlResult.uploadUrl,
         storagePath: document.storagePath,
-        // These would be set from the signed URL when GCS is configured
-        expiresAt: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes
+        expiresAt: signedUrlResult.expiresAt,
+        headers: signedUrlResult.headers,
+        useSignedUrl: true,
       };
     }),
 
@@ -348,6 +372,11 @@ export const documentsRouter = router({
         });
       }
 
+      // Delete from GCS if configured
+      if (document.storagePath) {
+        await deleteFile(document.storagePath);
+      }
+
       // Soft delete and update storage
       await ctx.prisma.$transaction([
         ctx.prisma.document.update({
@@ -365,6 +394,77 @@ export const documentsRouter = router({
       ]);
 
       return { success: true };
+    }),
+
+  /**
+   * Get a download URL for a document
+   */
+  getDownloadUrl: protectedProcedure
+    .input(
+      z.object({
+        documentId: z.string().uuid(),
+        disposition: z.enum(["inline", "attachment"]).default("inline"),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      // Find document and verify access
+      const document = await ctx.prisma.document.findFirst({
+        where: {
+          id: input.documentId,
+          deletedAt: null,
+          org: {
+            memberships: {
+              some: {
+                userId: ctx.user.id,
+                status: "active",
+              },
+            },
+          },
+        },
+      });
+
+      if (!document) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Document not found or you don't have access",
+        });
+      }
+
+      if (!document.storagePath) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Document file not found in storage",
+        });
+      }
+
+      // Generate signed download URL
+      const responseDisposition =
+        input.disposition === "attachment"
+          ? `attachment; filename="${document.filename}"`
+          : `inline; filename="${document.filename}"`;
+
+      const downloadUrl = await generateDownloadUrl({
+        storagePath: document.storagePath,
+        expiresInMinutes: 60,
+        responseDisposition,
+      });
+
+      if (!downloadUrl) {
+        // Fallback for local development
+        return {
+          downloadUrl: `/api/download/${document.id}`,
+          filename: document.filename,
+          mimeType: document.mimeType,
+          expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+        };
+      }
+
+      return {
+        downloadUrl,
+        filename: document.filename,
+        mimeType: document.mimeType,
+        expiresAt: new Date(Date.now() + 60 * 60 * 1000),
+      };
     }),
 
   /**

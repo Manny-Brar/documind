@@ -76,18 +76,34 @@ function DocumentsPage() {
 
     for (const file of fileArray) {
       try {
-        // Get upload URL
-        const { documentId, uploadUrl } = await getUploadUrl.mutateAsync({
+        // Get signed upload URL
+        const uploadData = await getUploadUrl.mutateAsync({
           orgId: org.id,
           filename: file.name,
           fileSizeBytes: file.size,
-          mimeType: file.type,
+          mimeType: file.type || "application/octet-stream",
         });
 
-        // Upload file (for now, just confirm since we don't have GCS yet)
-        // TODO: Implement actual file upload to GCS signed URL
+        // Upload file to signed URL (GCS) or fallback endpoint
+        if (uploadData.useSignedUrl) {
+          // Direct upload to GCS using signed URL
+          const uploadResponse = await fetch(uploadData.uploadUrl, {
+            method: "PUT",
+            headers: uploadData.headers,
+            body: file,
+          });
+
+          if (!uploadResponse.ok) {
+            throw new Error(`Upload failed: ${uploadResponse.statusText}`);
+          }
+        }
+        // Note: If useSignedUrl is false, we're in fallback mode
+        // The file would need to be uploaded to /api/upload/:id endpoint
+        // For now, we'll just confirm the upload record exists
+
+        // Confirm upload completed
         await confirmUpload.mutateAsync({
-          documentId,
+          documentId: uploadData.documentId,
         });
       } catch (err) {
         console.error("Upload failed:", err);
