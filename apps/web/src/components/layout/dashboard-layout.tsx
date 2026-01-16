@@ -2,6 +2,7 @@ import * as React from "react";
 import { Sidebar } from "./sidebar";
 import { Header } from "./header";
 import { signOut } from "../../lib/auth-client";
+import { CommandPaletteProvider } from "../command-palette";
 
 // Organization context for child components
 export interface OrgContextValue {
@@ -118,14 +119,16 @@ export function DashboardLayout({ children, user, org }: DashboardLayoutProps) {
     </div>
   );
 
-  // Wrap with OrgContext if org is available
+  // Wrap with CommandPaletteProvider and OrgContext if org is available
   if (org) {
     return (
-      <OrgContext.Provider value={org}>
-        {content}
-      </OrgContext.Provider>
+      <CommandPaletteProvider>
+        <OrgContext.Provider value={org}>
+          {content}
+        </OrgContext.Provider>
+      </CommandPaletteProvider>
     );
   }
 
-  return content;
+  return <CommandPaletteProvider>{content}</CommandPaletteProvider>;
 }
