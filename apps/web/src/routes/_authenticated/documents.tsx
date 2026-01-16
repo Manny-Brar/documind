@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Button, Card, Badge } from "@documind/ui";
 import { trpc } from "../../lib/trpc";
 import { useOrg } from "../../components/layout/dashboard-layout";
+import { DocumentViewer } from "../../components/document-viewer";
 
 export const Route = createFileRoute("/_authenticated/documents")({
   component: DocumentsPage,
@@ -39,12 +40,21 @@ function formatDate(date: Date | string): string {
   return d.toLocaleDateString();
 }
 
+// Document type for viewer
+interface ViewableDocument {
+  id: string;
+  filename: string;
+  fileType: string;
+  mimeType: string;
+}
+
 function DocumentsPage() {
   const org = useOrg();
   const utils = trpc.useUtils();
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [uploadingFiles, setUploadingFiles] = useState<File[]>([]);
+  const [viewingDocument, setViewingDocument] = useState<ViewableDocument | null>(null);
 
   // Fetch documents
   const { data, isLoading, error } = trpc.documents.list.useQuery({
@@ -323,13 +333,23 @@ function DocumentsPage() {
 
                   {/* Actions */}
                   <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button size="icon-sm" variant="ghost">
+                    <Button
+                      size="icon-sm"
+                      variant="ghost"
+                      onClick={() => setViewingDocument({
+                        id: doc.id,
+                        filename: doc.filename,
+                        fileType: doc.fileType,
+                        mimeType: doc.mimeType ?? "application/octet-stream",
+                      })}
+                      title="View document"
+                    >
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                         <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                       </svg>
                     </Button>
-                    <Button size="icon-sm" variant="ghost">
+                    <Button size="icon-sm" variant="ghost" title="Download document">
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                       </svg>
@@ -365,6 +385,17 @@ function DocumentsPage() {
         <Badge variant="outline">TXT</Badge>
         <Badge variant="outline">MD</Badge>
       </div>
+
+      {/* Document Viewer Modal */}
+      {viewingDocument && (
+        <DocumentViewer
+          documentId={viewingDocument.id}
+          filename={viewingDocument.filename}
+          fileType={viewingDocument.fileType}
+          mimeType={viewingDocument.mimeType}
+          onClose={() => setViewingDocument(null)}
+        />
+      )}
     </div>
   );
 }
