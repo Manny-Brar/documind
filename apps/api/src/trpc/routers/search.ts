@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure } from "../trpc.js";
+import { searchWithFallback, type SearchOptions } from "../../lib/vector-search.js";
 
 export const searchRouter = router({
   /**
@@ -59,33 +60,18 @@ export const searchRouter = router({
       }> = [];
 
       if (!isVertexConfigured) {
-        // Fallback: Simple filename search
-        const documents = await ctx.prisma.document.findMany({
-          where: {
-            orgId: input.orgId,
-            deletedAt: null,
-            indexStatus: "indexed",
-            OR: [
-              { filename: { contains: input.query, mode: "insensitive" } },
-              // In a real implementation, we'd search document content
-            ],
-          },
-          take: input.limit,
-          select: {
-            id: true,
-            filename: true,
-            fileType: true,
-            metadata: true,
-          },
-        });
+        // Use vector search with embedding similarity
+        const searchOpts: SearchOptions = {
+          limit: input.limit,
+          minScore: 0.25, // Lower threshold for more results
+        };
 
-        results = documents.map((doc, index) => ({
-          documentId: doc.id,
-          filename: doc.filename,
-          fileType: doc.fileType,
-          snippet: `Found "${input.query}" in ${doc.filename}`,
-          score: 1 - index * 0.1,
-        }));
+        results = await searchWithFallback(
+          ctx.prisma,
+          input.orgId,
+          input.query,
+          searchOpts
+        );
       } else {
         // TODO: Implement Vertex AI Search
         // const vertexResults = await vertexSearch({
