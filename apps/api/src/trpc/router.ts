@@ -5,6 +5,7 @@ import { documentsRouter } from "./routers/documents.js";
 import { searchRouter } from "./routers/search.js";
 import { settingsRouter } from "./routers/settings.js";
 import { apiKeysRouter } from "./routers/api-keys.js";
+import { billingRouter } from "./routers/billing.js";
 
 export const appRouter = router({
   health: healthRouter,
@@ -13,6 +14,7 @@ export const appRouter = router({
   search: searchRouter,
   settings: settingsRouter,
   apiKeys: apiKeysRouter,
+  billing: billingRouter,
 });
 
 export type AppRouter = typeof appRouter;

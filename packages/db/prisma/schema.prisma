@@ -43,12 +43,13 @@ model Organization {
   deletedAt DateTime? @map("deleted_at") @db.Timestamptz
 
   // Relations
-  memberships  Membership[]
-  documents    Document[]
-  integrations Integration[]
-  apiKeys      ApiKey[]
-  searchLogs   SearchLog[]
-  auditLogs    AuditLog[]
+  memberships   Membership[]
+  documents     Document[]
+  integrations  Integration[]
+  apiKeys       ApiKey[]
+  searchLogs    SearchLog[]
+  auditLogs     AuditLog[]
+  usageRecords  UsageRecord[]
 
   @@map("organizations")
 }
@@ -441,4 +442,41 @@ model ApiKey {
 
   @@index([orgId])
   @@map("api_keys")
+}
+
+// ============================================================================
+// USAGE RECORDS
+// ============================================================================
+
+model UsageRecord {
+  id    String @id @default(uuid()) @db.Uuid
+  orgId String @map("org_id") @db.Uuid
+
+  // Usage type: embedding, search, llm, storage
+  usageType String @map("usage_type") @db.VarChar(50)
+
+  // Quantity tracked
+  quantity   Int    @default(0) // tokens, count, or bytes depending on type
+  unitType   String @map("unit_type") @db.VarChar(50) // tokens, requests, bytes
+
+  // Cost tracking (in cents/microdollars for precision)
+  costMicros BigInt @default(0) @map("cost_micros") // cost in microdollars (1/1,000,000 dollar)
+
+  // Context
+  resourceType String? @map("resource_type") @db.VarChar(100) // document, search, etc.
+  resourceId   String? @map("resource_id") @db.VarChar(255)
+  metadata     Json    @default("{}")
+
+  // Period (for aggregation)
+  periodStart DateTime @map("period_start") @db.Date
+  periodEnd   DateTime @map("period_end") @db.Date
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relations
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, periodStart])
+  @@index([orgId, usageType, periodStart])
+  @@map("usage_records")
 }
