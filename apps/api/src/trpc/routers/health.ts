@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { router, publicProcedure } from "../trpc.js";
+import { router, publicProcedure, protectedProcedure } from "../trpc.js";
 
 export const healthRouter = router({
   check: publicProcedure.query(async () => {
@@ -14,6 +14,22 @@ export const healthRouter = router({
     return {
       pong: input.message,
       receivedAt: new Date(),
+    };
+  }),
+
+  // Protected endpoint to verify auth is working
+  me: protectedProcedure.query(({ ctx }) => {
+    return {
+      user: {
+        id: ctx.user.id,
+        email: ctx.user.email,
+        name: ctx.user.name,
+        image: ctx.user.image,
+      },
+      session: {
+        id: ctx.session.id,
+        expiresAt: ctx.session.expiresAt,
+      },
     };
   }),
 });

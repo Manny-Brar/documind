@@ -22,27 +22,27 @@ export const middleware = t.middleware;
 
 // Auth middleware - requires authenticated user
 const isAuthed = middleware(async ({ ctx, next }) => {
-  // TODO: Implement actual auth check
-  // if (!ctx.session || !ctx.user) {
-  //   throw new TRPCError({ code: "UNAUTHORIZED" });
-  // }
+  if (!ctx.session || !ctx.user) {
+    throw new TRPCError({ code: "UNAUTHORIZED", message: "You must be logged in to access this resource" });
+  }
+
+  // Narrow the context type to guarantee session and user are present
   return next({
     ctx: {
       ...ctx,
-      // session: ctx.session,
-      // user: ctx.user,
+      session: ctx.session,
+      user: ctx.user,
     },
   });
 });
 
 export const protectedProcedure = t.procedure.use(isAuthed);
 
-// Admin middleware - requires admin role
+// Admin middleware - requires admin role in organization
+// Note: This will be expanded when organization context is added
 const isAdmin = middleware(async ({ ctx, next }) => {
-  // TODO: Implement admin check
-  // if (ctx.membership?.role !== "admin") {
-  //   throw new TRPCError({ code: "FORBIDDEN" });
-  // }
+  // For now, just pass through - admin checks will require org context
+  // TODO: Add organization membership check when org context is implemented
   return next({ ctx });
 });
 
