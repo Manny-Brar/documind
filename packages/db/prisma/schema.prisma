@@ -1,0 +1,369 @@
+// Prisma Schema for DocuMind
+// Based on PRD Technical Specification
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// ORGANIZATIONS
+// ============================================================================
+
+model Organization {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @db.VarChar(255)
+  slug      String   @unique @db.VarChar(100)
+
+  // Plan & Storage
+  planId           String  @default("starter") @map("plan_id") @db.VarChar(50)
+  storageQuotaBytes BigInt  @default(26843545600) @map("storage_quota_bytes") // 25 GB
+  storageUsedBytes  BigInt  @default(0) @map("storage_used_bytes")
+
+  // Vertex AI Search references
+  vertexDataStoreId  String? @map("vertex_data_store_id") @db.VarChar(255)
+  vertexSearchAppId  String? @map("vertex_search_app_id") @db.VarChar(255)
+
+  // Settings (JSON for flexibility)
+  settings Json @default("{}")
+
+  // Billing (Stripe)
+  stripeCustomerId     String? @map("stripe_customer_id") @db.VarChar(255)
+  stripeSubscriptionId String? @map("stripe_subscription_id") @db.VarChar(255)
+  subscriptionStatus   String? @map("subscription_status") @db.VarChar(50)
+  currentPeriodEnd     DateTime? @map("current_period_end") @db.Timestamptz
+
+  // Timestamps
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+
+  // Relations
+  memberships  Membership[]
+  documents    Document[]
+  integrations Integration[]
+  apiKeys      ApiKey[]
+  searchLogs   SearchLog[]
+  auditLogs    AuditLog[]
+
+  @@map("organizations")
+}
+
+// ============================================================================
+// USERS
+// ============================================================================
+
+model User {
+  id            String   @id @default(uuid()) @db.Uuid
+  email         String   @unique @db.VarChar(255)
+  emailVerified Boolean  @default(false) @map("email_verified")
+
+  // Email verification
+  emailVerificationToken   String?   @map("email_verification_token") @db.VarChar(255)
+  emailVerificationExpires DateTime? @map("email_verification_expires") @db.Timestamptz
+
+  // Authentication
+  passwordHash         String?   @map("password_hash") @db.VarChar(255)
+  passwordResetToken   String?   @map("password_reset_token") @db.VarChar(255)
+  passwordResetExpires DateTime? @map("password_reset_expires") @db.Timestamptz
+
+  // Profile
+  name      String  @db.VarChar(255)
+  avatarUrl String? @map("avatar_url") @db.VarChar(500)
+
+  // MFA
+  mfaEnabled       Boolean  @default(false) @map("mfa_enabled")
+  mfaSecret        String?  @map("mfa_secret") @db.VarChar(255)
+  mfaRecoveryCodes String[] @map("mfa_recovery_codes")
+
+  // OAuth
+  googleId String? @map("google_id") @db.VarChar(255)
+
+  // Security
+  failedLoginAttempts Int       @default(0) @map("failed_login_attempts")
+  lockedUntil         DateTime? @map("locked_until") @db.Timestamptz
+  lastLoginAt         DateTime? @map("last_login_at") @db.Timestamptz
+  lastLoginIp         String?   @map("last_login_ip") @db.VarChar(45)
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  memberships       Membership[]
+  documents         Document[]
+  sessions          Session[]
+  searchLogs        SearchLog[]
+  auditLogs         AuditLog[]
+  invitedMembers    Membership[] @relation("InvitedBy")
+  createdApiKeys    ApiKey[]     @relation("CreatedBy")
+  revokedApiKeys    ApiKey[]     @relation("RevokedBy")
+
+  @@index([googleId])
+  @@map("users")
+}
+
+// ============================================================================
+// MEMBERSHIPS (User-Org relationship)
+// ============================================================================
+
+model Membership {
+  id     String @id @default(uuid()) @db.Uuid
+  userId String @map("user_id") @db.Uuid
+  orgId  String @map("org_id") @db.Uuid
+
+  role   String @default("member") @db.VarChar(50) // admin, member, viewer
+  status String @default("pending") @db.VarChar(50) // pending, active, suspended, removed
+
+  // Invitation
+  invitedById       String?   @map("invited_by") @db.Uuid
+  invitationToken   String?   @map("invitation_token") @db.VarChar(255)
+  invitationExpires DateTime? @map("invitation_expires") @db.Timestamptz
+
+  // Timestamps
+  joinedAt  DateTime? @map("joined_at") @db.Timestamptz
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  invitedBy User?        @relation("InvitedBy", fields: [invitedById], references: [id])
+
+  @@unique([userId, orgId])
+  @@index([userId])
+  @@index([orgId])
+  @@index([invitationToken])
+  @@map("memberships")
+}
+
+// ============================================================================
+// SESSIONS
+// ============================================================================
+
+model Session {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+
+  tokenHash  String @unique @map("token_hash") @db.VarChar(255)
+  deviceInfo Json?  @map("device_info")
+  ipAddress  String? @map("ip_address") @db.VarChar(45)
+  location   Json?
+
+  // Lifecycle
+  lastActiveAt DateTime  @default(now()) @map("last_active_at") @db.Timestamptz
+  expiresAt    DateTime  @map("expires_at") @db.Timestamptz
+  revokedAt    DateTime? @map("revoked_at") @db.Timestamptz
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+// ============================================================================
+// DOCUMENTS
+// ============================================================================
+
+model Document {
+  id           String @id @default(uuid()) @db.Uuid
+  orgId        String @map("org_id") @db.Uuid
+  uploadedById String? @map("uploaded_by") @db.Uuid
+
+  // File info
+  filename      String @db.VarChar(500)
+  fileType      String @map("file_type") @db.VarChar(50)
+  fileSizeBytes BigInt @map("file_size_bytes")
+  mimeType      String? @map("mime_type") @db.VarChar(100)
+  pageCount     Int?    @map("page_count")
+
+  // Storage
+  storageBucket String @map("storage_bucket") @db.VarChar(255)
+  storagePath   String @map("storage_path") @db.VarChar(1000)
+
+  // Source tracking
+  source           String    @default("upload") @db.VarChar(50) // upload, google_drive, api
+  sourceId         String?   @map("source_id") @db.VarChar(500)
+  sourcePath       String?   @map("source_path") @db.VarChar(1000)
+  sourceModifiedAt DateTime? @map("source_modified_at") @db.Timestamptz
+
+  // Indexing
+  indexStatus      String    @default("pending") @map("index_status") @db.VarChar(50)
+  indexError       String?   @map("index_error")
+  indexedAt        DateTime? @map("indexed_at") @db.Timestamptz
+  vertexDocumentId String?   @map("vertex_document_id") @db.VarChar(255)
+
+  // Metadata (flexible JSON)
+  metadata Json @default("{}")
+
+  // Timestamps
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz
+
+  // Relations
+  org        Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  uploadedBy User?        @relation(fields: [uploadedById], references: [id])
+
+  @@index([orgId])
+  @@index([orgId, source, sourceId])
+  @@index([indexStatus])
+  @@map("documents")
+}
+
+// ============================================================================
+// INTEGRATIONS
+// ============================================================================
+
+model Integration {
+  id    String @id @default(uuid()) @db.Uuid
+  orgId String @map("org_id") @db.Uuid
+
+  type String  @db.VarChar(50) // google_drive, slack, dropbox
+  name String? @db.VarChar(255)
+
+  // Credentials (encrypted in application layer)
+  credentials Json @default("{}")
+
+  // Configuration
+  settings Json @default("{}")
+
+  // Sync status
+  syncStatus   String    @default("pending") @map("sync_status") @db.VarChar(50)
+  lastSyncAt   DateTime? @map("last_sync_at") @db.Timestamptz
+  nextSyncAt   DateTime? @map("next_sync_at") @db.Timestamptz
+  syncCursor   String?   @map("sync_cursor")
+  errorMessage String?   @map("error_message")
+  errorCount   Int       @default(0) @map("error_count")
+
+  // Statistics
+  documentsSynced Int    @default(0) @map("documents_synced")
+  totalSizeBytes  BigInt @default(0) @map("total_size_bytes")
+
+  // Timestamps
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  disconnectedAt DateTime? @map("disconnected_at") @db.Timestamptz
+
+  // Relations
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@index([nextSyncAt])
+  @@map("integrations")
+}
+
+// ============================================================================
+// SEARCH LOGS
+// ============================================================================
+
+model SearchLog {
+  id     String  @id @default(uuid()) @db.Uuid
+  orgId  String  @map("org_id") @db.Uuid
+  userId String? @map("user_id") @db.Uuid
+
+  // Query
+  query     String @db.Text
+  queryType String @default("search") @map("query_type") @db.VarChar(50) // search, question, followup
+
+  // Results
+  resultsCount    Int     @default(0) @map("results_count")
+  answerGenerated Boolean @default(false) @map("answer_generated")
+
+  // Performance
+  latencyMs Int? @map("latency_ms")
+
+  // Feedback
+  feedback     String? @db.VarChar(50) // positive, negative
+  feedbackText String? @map("feedback_text") @db.Text
+
+  // Context
+  sessionId String? @map("session_id") @db.VarChar(255)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relations
+  org  Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user User?        @relation(fields: [userId], references: [id])
+
+  @@index([orgId, createdAt(sort: Desc)])
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("search_logs")
+}
+
+// ============================================================================
+// AUDIT LOGS
+// ============================================================================
+
+model AuditLog {
+  id     String  @id @default(uuid()) @db.Uuid
+  orgId  String? @map("org_id") @db.Uuid
+  userId String? @map("user_id") @db.Uuid
+
+  // Event
+  action       String  @db.VarChar(100) // e.g., auth.login, document.uploaded
+  resourceType String  @map("resource_type") @db.VarChar(100)
+  resourceId   String? @map("resource_id") @db.VarChar(255)
+
+  // Context
+  details   Json    @default("{}")
+  ipAddress String? @map("ip_address") @db.VarChar(45)
+  userAgent String? @map("user_agent") @db.Text
+  requestId String? @map("request_id") @db.VarChar(255)
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relations
+  org  Organization? @relation(fields: [orgId], references: [id], onDelete: SetNull)
+  user User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([orgId, createdAt(sort: Desc)])
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([resourceType, resourceId])
+  @@index([action])
+  @@map("audit_logs")
+}
+
+// ============================================================================
+// API KEYS
+// ============================================================================
+
+model ApiKey {
+  id        String  @id @default(uuid()) @db.Uuid
+  orgId     String  @map("org_id") @db.Uuid
+  createdById String? @map("created_by") @db.Uuid
+
+  name      String @db.VarChar(255)
+  keyHash   String @unique @map("key_hash") @db.VarChar(255)
+  keyPrefix String @map("key_prefix") @db.VarChar(10) // e.g., "dm_live_abc"
+
+  // Permissions
+  scopes String[] @default(["read"])
+
+  // Usage
+  lastUsedAt DateTime? @map("last_used_at") @db.Timestamptz
+  usageCount BigInt    @default(0) @map("usage_count")
+
+  // Lifecycle
+  expiresAt  DateTime? @map("expires_at") @db.Timestamptz
+  revokedAt  DateTime? @map("revoked_at") @db.Timestamptz
+  revokedById String?   @map("revoked_by") @db.Uuid
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relations
+  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  createdBy User?        @relation("CreatedBy", fields: [createdById], references: [id])
+  revokedBy User?        @relation("RevokedBy", fields: [revokedById], references: [id])
+
+  @@index([orgId])
+  @@map("api_keys")
+}
