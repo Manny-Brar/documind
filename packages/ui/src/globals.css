@@ -4,48 +4,122 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
-    --radius: 0.5rem;
+    /* ============================================
+       NEOBRUTALISM DESIGN SYSTEM - DOCUMIND
+       ============================================ */
+
+    /* Brand Colors */
+    --neo-primary: 217.2 91.2% 52.9%;       /* #2563EB - Strong blue */
+    --neo-primary-dark: 221.2 83.2% 47.1%;  /* #1D4ED8 */
+    --neo-secondary: 330.4 81.2% 60.4%;     /* #EC4899 - Hot pink */
+    --neo-secondary-dark: 335.1 77.6% 50%;  /* #DB2777 */
+
+    /* Semantic Colors */
+    --neo-success: 84.8 85.2% 34.5%;        /* #65A30D - Lime-700 */
+    --neo-warning: 32.1 94.6% 43.7%;        /* #D97706 - Amber-600 */
+    --neo-error: 0 72.2% 50.6%;             /* #DC2626 - Red-600 */
+    --neo-info: 188.7 94.5% 42.7%;          /* #0891B2 - Cyan-600 */
+
+    /* Neutrals */
+    --neo-black: 0 0% 0%;
+    --neo-white: 0 0% 100%;
+    --neo-gray-50: 0 0% 98%;
+    --neo-gray-100: 0 0% 96.1%;
+    --neo-gray-200: 0 0% 89.8%;
+    --neo-gray-500: 0 0% 45.1%;
+    --neo-gray-900: 0 0% 9%;
+
+    /* Surface Colors - Pastel Accents */
+    --neo-surface-main: 0 0% 100%;
+    --neo-surface-yellow: 54.9 96.7% 88%;   /* #FEF9C3 */
+    --neo-surface-blue: 213.8 93.9% 93.7%;  /* #DBEAFE */
+    --neo-surface-pink: 325.7 77.8% 94.7%;  /* #FCE7F3 */
+    --neo-surface-mint: 151.8 80.4% 90%;    /* #D1FAE5 */
+    --neo-surface-lavender: 250 91.7% 95.5%; /* #EDE9FE */
+
+    /* Sidebar */
+    --neo-sidebar-bg: 48 96.5% 89%;         /* #FEF3C7 */
+    --neo-sidebar-hover: 47.9 95.8% 76.1%;  /* #FDE68A */
+
+    /* ============================================
+       SHADCN/UI COMPATIBILITY LAYER
+       ============================================ */
+    --background: var(--neo-white);
+    --foreground: var(--neo-gray-900);
+    --card: var(--neo-white);
+    --card-foreground: var(--neo-gray-900);
+    --popover: var(--neo-white);
+    --popover-foreground: var(--neo-gray-900);
+    --primary: var(--neo-primary);
+    --primary-foreground: var(--neo-white);
+    --secondary: var(--neo-gray-100);
+    --secondary-foreground: var(--neo-gray-900);
+    --muted: var(--neo-gray-100);
+    --muted-foreground: var(--neo-gray-500);
+    --accent: var(--neo-surface-yellow);
+    --accent-foreground: var(--neo-gray-900);
+    --destructive: var(--neo-error);
+    --destructive-foreground: var(--neo-white);
+    --border: var(--neo-black);
+    --input: var(--neo-black);
+    --ring: var(--neo-primary);
+
+    /* Border Radius - Minimal for brutalism */
+    --radius: 0.25rem;
+
+    /* ============================================
+       NEOBRUTALISM SPECIFIC TOKENS
+       ============================================ */
+
+    /* Shadows - Hard edges, no blur */
+    --shadow-neo: 4px 4px 0px 0px hsl(var(--neo-black));
+    --shadow-neo-sm: 2px 2px 0px 0px hsl(var(--neo-black));
+    --shadow-neo-lg: 6px 6px 0px 0px hsl(var(--neo-black));
+    --shadow-neo-pressed: 1px 1px 0px 0px hsl(var(--neo-black));
+    --shadow-neo-primary: 4px 4px 0px 0px hsl(var(--neo-primary));
+    --shadow-neo-error: 4px 4px 0px 0px hsl(var(--neo-error));
+
+    /* Border */
+    --border-width: 2px;
+    --border-width-thick: 3px;
+
+    /* Transitions - Mechanical, not organic */
+    --transition-fast: 100ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-normal: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-slow: 200ms cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --neo-bg-dark: 0 0% 3.9%;
+    --neo-surface-dark: 0 0% 9%;
+    --neo-surface-dark-elevated: 0 0% 14.9%;
+    --neo-border-dark: 0 0% 25.1%;
+
+    --background: var(--neo-bg-dark);
+    --foreground: var(--neo-gray-50);
+    --card: var(--neo-surface-dark);
+    --card-foreground: var(--neo-gray-50);
+    --popover: var(--neo-surface-dark);
+    --popover-foreground: var(--neo-gray-50);
     --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 48%;
+    --primary-foreground: var(--neo-gray-900);
+    --secondary: var(--neo-surface-dark-elevated);
+    --secondary-foreground: var(--neo-gray-50);
+    --muted: var(--neo-surface-dark-elevated);
+    --muted-foreground: 0 0% 63.9%;
+    --accent: var(--neo-surface-dark-elevated);
+    --accent-foreground: var(--neo-gray-50);
+    --destructive: 0 62.8% 50.6%;
+    --destructive-foreground: var(--neo-gray-50);
+    --border: var(--neo-border-dark);
+    --input: var(--neo-border-dark);
+    --ring: 217.2 91.2% 59.8%;
+
+    /* Dark mode shadows - subtle glow effect */
+    --shadow-neo: 4px 4px 0px 0px hsl(var(--neo-gray-200) / 0.2);
+    --shadow-neo-sm: 2px 2px 0px 0px hsl(var(--neo-gray-200) / 0.2);
+    --shadow-neo-lg: 6px 6px 0px 0px hsl(var(--neo-gray-200) / 0.3);
+    --shadow-neo-pressed: 1px 1px 0px 0px hsl(var(--neo-gray-200) / 0.1);
   }
 }
 
@@ -53,7 +127,198 @@
   * {
     @apply border-border;
   }
+
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  /* Heading font */
+  h1, h2, h3, h4, h5, h6, .font-heading {
+    font-family: 'Archivo Black', 'Inter', system-ui, sans-serif;
+    letter-spacing: -0.02em;
+  }
+
+  /* Monospace for stats */
+  .font-mono {
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer components {
+  /* ============================================
+     NEOBRUTALISM UTILITY CLASSES
+     ============================================ */
+
+  /* Interactive element base */
+  .neo-interactive {
+    @apply transition-all duration-100;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .neo-interactive:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: var(--shadow-neo-lg);
+  }
+
+  .neo-interactive:active {
+    transform: translate(1px, 1px);
+    box-shadow: var(--shadow-neo-pressed);
+  }
+
+  /* Card surfaces */
+  .neo-card {
+    @apply border-2 border-black bg-white;
+    box-shadow: var(--shadow-neo);
+  }
+
+  .neo-card-yellow {
+    @apply neo-card;
+    background-color: hsl(var(--neo-surface-yellow));
+  }
+
+  .neo-card-blue {
+    @apply neo-card;
+    background-color: hsl(var(--neo-surface-blue));
+  }
+
+  .neo-card-pink {
+    @apply neo-card;
+    background-color: hsl(var(--neo-surface-pink));
+  }
+
+  .neo-card-mint {
+    @apply neo-card;
+    background-color: hsl(var(--neo-surface-mint));
+  }
+
+  .neo-card-lavender {
+    @apply neo-card;
+    background-color: hsl(var(--neo-surface-lavender));
+  }
+
+  /* Focus styles - visible and bold */
+  .neo-focus:focus-visible {
+    @apply outline-none ring-[3px] ring-offset-2;
+    ring-color: hsl(var(--neo-primary));
+  }
+
+  /* Disabled pattern - diagonal stripes */
+  .neo-disabled {
+    @apply pointer-events-none opacity-40;
+    background-image: repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 4px,
+      hsl(var(--neo-gray-200)) 4px,
+      hsl(var(--neo-gray-200)) 8px
+    );
+  }
+
+  /* Text styles */
+  .neo-label {
+    @apply text-xs font-bold uppercase tracking-wider;
+    color: hsl(var(--neo-gray-500));
+  }
+
+  .neo-stat {
+    @apply font-mono text-5xl font-bold;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@layer utilities {
+  /* Shadow utilities */
+  .shadow-neo {
+    box-shadow: var(--shadow-neo);
+  }
+
+  .shadow-neo-sm {
+    box-shadow: var(--shadow-neo-sm);
+  }
+
+  .shadow-neo-lg {
+    box-shadow: var(--shadow-neo-lg);
+  }
+
+  .shadow-neo-pressed {
+    box-shadow: var(--shadow-neo-pressed);
+  }
+
+  .shadow-neo-primary {
+    box-shadow: var(--shadow-neo-primary);
+  }
+
+  .shadow-neo-error {
+    box-shadow: var(--shadow-neo-error);
+  }
+
+  /* Border utilities */
+  .border-neo {
+    @apply border-2 border-black;
+  }
+
+  .border-neo-thick {
+    @apply border-[3px] border-black;
+  }
+
+  /* Transition utility */
+  .transition-neo {
+    @apply transition-all duration-100;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Hover lift effect */
+  .hover-lift:hover {
+    transform: translate(-2px, -2px);
+  }
+
+  .hover-lift:active {
+    transform: translate(1px, 1px);
+  }
+
+  /* Surface backgrounds */
+  .bg-neo-yellow {
+    background-color: hsl(var(--neo-surface-yellow));
+  }
+
+  .bg-neo-blue {
+    background-color: hsl(var(--neo-surface-blue));
+  }
+
+  .bg-neo-pink {
+    background-color: hsl(var(--neo-surface-pink));
+  }
+
+  .bg-neo-mint {
+    background-color: hsl(var(--neo-surface-mint));
+  }
+
+  .bg-neo-lavender {
+    background-color: hsl(var(--neo-surface-lavender));
+  }
+
+  .bg-neo-sidebar {
+    background-color: hsl(var(--neo-sidebar-bg));
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .neo-interactive:hover,
+  .hover-lift:hover {
+    transform: none;
+  }
+
+  .neo-interactive:active,
+  .hover-lift:active {
+    transform: none;
+  }
+
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
