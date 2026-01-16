@@ -179,6 +179,32 @@ export async function generateDownloadUrl(options: DownloadUrlOptions): Promise<
 }
 
 /**
+ * Download a file from GCS as a Buffer
+ */
+export async function downloadFile(storagePath: string): Promise<Buffer | null> {
+  const client = getStorageClient();
+
+  if (!client) {
+    console.warn("[Storage] GCS not configured, cannot download file");
+    return null;
+  }
+
+  const bucketName = getBucketName();
+
+  try {
+    const bucket = client.bucket(bucketName);
+    const file = bucket.file(storagePath);
+
+    const [contents] = await file.download();
+    console.log(`[Storage] Downloaded file: ${storagePath} (${contents.length} bytes)`);
+    return contents;
+  } catch (error) {
+    console.error("[Storage] Failed to download file:", error);
+    return null;
+  }
+}
+
+/**
  * Delete a file from GCS
  */
 export async function deleteFile(storagePath: string): Promise<boolean> {

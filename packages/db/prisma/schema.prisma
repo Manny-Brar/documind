@@ -205,6 +205,45 @@ model Verification {
 }
 
 // ============================================================================
+// DOCUMENT CHUNKS (for vector search)
+// ============================================================================
+
+model DocumentChunk {
+  id         String @id @default(uuid()) @db.Uuid
+  documentId String @map("document_id") @db.Uuid
+  orgId      String @map("org_id") @db.Uuid
+
+  // Chunk content
+  content      String @db.Text
+  chunkIndex   Int    @map("chunk_index")
+  tokenCount   Int    @map("token_count")
+
+  // Location in document
+  pageNumber   Int?   @map("page_number")
+  startOffset  Int?   @map("start_offset")
+  endOffset    Int?   @map("end_offset")
+
+  // Embedding stored as JSON array (can migrate to pgvector later)
+  // For production, use: embedding Float[] or pgvector extension
+  embedding    Json?  @default("[]")
+
+  // Metadata
+  metadata Json @default("{}")
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, chunkIndex])
+  @@index([orgId])
+  @@index([documentId])
+  @@map("document_chunks")
+}
+
+// ============================================================================
 // DOCUMENTS
 // ============================================================================
 
@@ -245,8 +284,9 @@ model Document {
   deletedAt DateTime? @map("deleted_at") @db.Timestamptz
 
   // Relations
-  org        Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  uploadedBy User?        @relation(fields: [uploadedById], references: [id])
+  org        Organization    @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  uploadedBy User?           @relation(fields: [uploadedById], references: [id])
+  chunks     DocumentChunk[]
 
   @@index([orgId])
   @@index([orgId, source, sourceId])

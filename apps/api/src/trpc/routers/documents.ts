@@ -9,6 +9,11 @@ import {
   getBucketName,
   deleteFile,
 } from "../../lib/storage.js";
+import {
+  indexDocument,
+  reindexDocument,
+  getIndexingStats,
+} from "../../lib/indexer.js";
 
 // Supported file types
 const SUPPORTED_FILE_TYPES = ["pdf", "docx", "pptx", "xlsx", "txt", "md"] as const;
@@ -532,5 +537,89 @@ export const documentsRouter = router({
           count: t._count,
         })),
       };
+    }),
+
+  /**
+   * Trigger indexing for a specific document
+   */
+  triggerIndexing: protectedProcedure
+    .input(
+      z.object({
+        documentId: z.string().uuid(),
+        force: z.boolean().default(false),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      // Find document and verify access
+      const document = await ctx.prisma.document.findFirst({
+        where: {
+          id: input.documentId,
+          deletedAt: null,
+          org: {
+            memberships: {
+              some: {
+                userId: ctx.user.id,
+                status: "active",
+              },
+            },
+          },
+        },
+      });
+
+      if (!document) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Document not found or you don't have access",
+        });
+      }
+
+      // Don't re-index unless forced
+      if (document.indexStatus === "indexed" && !input.force) {
+        return {
+          success: true,
+          message: "Document already indexed",
+          status: document.indexStatus,
+        };
+      }
+
+      // Trigger indexing
+      const result = input.force
+        ? await reindexDocument(ctx.prisma, input.documentId)
+        : await indexDocument(ctx.prisma, input.documentId);
+
+      return {
+        success: result.success,
+        message: result.success
+          ? `Indexed ${result.chunksCreated} chunks in ${result.totalTime}ms`
+          : result.error,
+        status: result.success ? "indexed" : "failed",
+        chunksCreated: result.chunksCreated,
+        totalTokens: result.totalTokens,
+      };
+    }),
+
+  /**
+   * Get indexing statistics for an organization
+   */
+  getIndexingStats: protectedProcedure
+    .input(z.object({ orgId: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      // Verify membership
+      const membership = await ctx.prisma.membership.findFirst({
+        where: {
+          userId: ctx.user.id,
+          orgId: input.orgId,
+          status: "active",
+        },
+      });
+
+      if (!membership) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You don't have access to this organization",
+        });
+      }
+
+      return getIndexingStats(ctx.prisma, input.orgId);
     }),
 });
