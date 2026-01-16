@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure } from "../trpc.js";
-import { searchWithFallback, type SearchOptions } from "../../lib/vector-search.js";
+import { searchWithFallback, searchDocuments, type SearchOptions } from "../../lib/vector-search.js";
+import { generateAnswer, type SourceChunk } from "../../lib/rag-generator.js";
 
 export const searchRouter = router({
   /**
@@ -83,18 +84,26 @@ export const searchRouter = router({
         // results = vertexResults;
       }
 
-      // Generate AI answer (placeholder)
+      // Generate AI answer for question queries
       let answer: string | null = null;
-      let answerSources: Array<{ documentId: string; pageNumber?: number }> = [];
+      let answerSources: Array<{ documentId: string; pageNumber?: number; filename?: string; relevance?: number }> = [];
+      let tokensUsed = 0;
 
       if (input.queryType === "question" && results.length > 0) {
-        // TODO: Implement Gemini RAG for answer generation
-        // For now, return a placeholder
-        answer = `Based on the ${results.length} document(s) found, here's what I found about "${input.query}"...`;
-        answerSources = results.slice(0, 3).map((r) => ({
-          documentId: r.documentId,
-          pageNumber: r.pageNumber,
-        }));
+        // Get full chunk content for RAG
+        const chunksForRag = await getChunksForRag(ctx.prisma, input.orgId, results);
+
+        if (chunksForRag.length > 0) {
+          const ragResult = await generateAnswer(input.query, chunksForRag);
+          answer = ragResult.answer;
+          answerSources = ragResult.sources.map((s) => ({
+            documentId: s.documentId,
+            pageNumber: s.pageNumber,
+            filename: s.filename,
+            relevance: s.relevance,
+          }));
+          tokensUsed = ragResult.tokensUsed;
+        }
       }
 
       const latencyMs = Date.now() - startTime;
@@ -117,6 +126,7 @@ export const searchRouter = router({
         results,
         answer,
         answerSources,
+        tokensUsed,
         latencyMs,
         hasMoreResults: results.length === input.limit,
       };
@@ -369,3 +379,65 @@ export const searchRouter = router({
       };
     }),
 });
+
+/**
+ * Get chunk content for RAG answer generation
+ * Retrieves the top chunks matching the search results
+ */
+async function getChunksForRag(
+  prisma: Parameters<typeof searchDocuments>[0],
+  orgId: string,
+  results: Array<{
+    documentId: string;
+    filename: string;
+    score: number;
+    pageNumber?: number;
+  }>
+): Promise<SourceChunk[]> {
+  if (results.length === 0) return [];
+
+  const documentIds = results.map((r) => r.documentId);
+
+  try {
+    // Query chunks for the matched documents
+    const chunks = await prisma.$queryRaw<
+      Array<{
+        document_id: string;
+        content: string;
+        page_number: number | null;
+        chunk_index: number;
+      }>
+    >`
+      SELECT
+        dc.document_id,
+        dc.content,
+        dc.page_number,
+        dc.chunk_index
+      FROM document_chunks dc
+      WHERE dc.document_id = ANY(${documentIds}::uuid[])
+      AND dc.org_id = ${orgId}::uuid
+      ORDER BY dc.chunk_index ASC
+      LIMIT 10
+    `;
+
+    // Map chunks to SourceChunk format with scores from results
+    const resultMap = new Map(
+      results.map((r) => [r.documentId, { filename: r.filename, score: r.score, pageNumber: r.pageNumber }])
+    );
+
+    return chunks.map((c) => {
+      const info = resultMap.get(c.document_id);
+      return {
+        documentId: c.document_id,
+        filename: info?.filename ?? "Unknown",
+        content: c.content,
+        score: info?.score ?? 0,
+        pageNumber: c.page_number ?? info?.pageNumber,
+        chunkIndex: c.chunk_index,
+      };
+    });
+  } catch (error) {
+    console.warn("[Search] Could not get chunks for RAG:", error);
+    return [];
+  }
+}
