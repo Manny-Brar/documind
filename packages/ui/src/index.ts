@@ -3,5 +3,8 @@
 // Utilities
 export { cn } from "./lib/utils.js";
 
-// Components (will be added via shadcn CLI)
+// Components
 export * from "./components/button.js";
+export * from "./components/card.js";
+export * from "./components/input.js";
+export * from "./components/label.js";

@@ -1,11 +1,14 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { Button } from "@documind/ui";
+import { useSession, signOut } from "../lib/auth-client";
 
 export const Route = createFileRoute("/")({
   component: HomePage,
 });
 
 function HomePage() {
+  const { data: session, isPending } = useSession();
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -13,8 +16,29 @@ function HomePage() {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <h1 className="text-2xl font-bold text-primary">DocuMind</h1>
           <div className="flex gap-2">
-            <Button variant="ghost">Sign In</Button>
-            <Button>Get Started</Button>
+            {isPending ? (
+              <Button variant="ghost" disabled>
+                Loading...
+              </Button>
+            ) : session ? (
+              <>
+                <span className="text-sm text-muted-foreground self-center">
+                  {session.user.name}
+                </span>
+                <Button variant="ghost" onClick={() => signOut()}>
+                  Sign Out
+                </Button>
+              </>
+            ) : (
+              <>
+                <Link to="/login">
+                  <Button variant="ghost">Sign In</Button>
+                </Link>
+                <Link to="/signup">
+                  <Button>Get Started</Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -26,22 +50,29 @@ function HomePage() {
             AI-Powered Document Search
           </h2>
           <p className="text-xl text-muted-foreground mb-8">
-            Search, query, and extract insights from your document repositories
-            using natural language. Find answers instantly with AI-powered
-            search grounded in your own documents.
+            Search, query, and extract insights from your document repositories using natural
+            language. Find answers instantly with AI-powered search grounded in your own documents.
           </p>
           <div className="flex gap-4 justify-center">
-            <Button size="lg">Start Free Trial</Button>
-            <Button size="lg" variant="outline">
-              Watch Demo
-            </Button>
+            {session ? (
+              <Button size="lg">Go to Dashboard</Button>
+            ) : (
+              <>
+                <Link to="/signup">
+                  <Button size="lg">Start Free Trial</Button>
+                </Link>
+                <Button size="lg" variant="outline">
+                  Watch Demo
+                </Button>
+              </>
+            )}
           </div>
         </div>
 
         {/* Status */}
         <div className="mt-16 text-center">
           <p className="text-sm text-muted-foreground">
-            API Status: Pending setup
+            {session ? `Signed in as ${session.user.email}` : "API Status: Ready"}
           </p>
         </div>
       </main>
