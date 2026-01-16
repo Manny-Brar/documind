@@ -1,7 +1,31 @@
+import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Button, Card, CardContent, CardHeader, CardTitle, StatsCard, Badge } from "@documind/ui";
 import { trpc } from "../../lib/trpc";
 import { useOrg } from "../../components/layout/dashboard-layout";
+import { DocumentViewer } from "../../components/document-viewer";
+
+// Document type for viewer
+interface ViewableDocument {
+  id: string;
+  filename: string;
+  fileType: string;
+  mimeType: string;
+}
+
+// MIME type mapping
+const MIME_TYPES: Record<string, string> = {
+  pdf: "application/pdf",
+  docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  txt: "text/plain",
+  md: "text/markdown",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  gif: "image/gif",
+};
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: DashboardPage,
@@ -39,6 +63,7 @@ function formatDate(date: Date | string): string {
 
 function DashboardPage() {
   const org = useOrg();
+  const [viewingDocument, setViewingDocument] = useState<ViewableDocument | null>(null);
 
   // Fetch document stats
   const { data: docStats, isLoading: statsLoading } = trpc.documents.getStats.useQuery({
@@ -116,6 +141,7 @@ function DashboardPage() {
             label="Storage Used"
             value={formatFileSize(docStats?.storageUsedBytes ?? 0)}
             trend={{ value: storagePercentage, label: `of ${formatFileSize(docStats?.storageQuotaBytes ?? 0)}` }}
+            progress={{ value: storagePercentage }}
             variant="pink"
             icon={
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -161,9 +187,15 @@ function DashboardPage() {
               {documents.map((doc) => {
                 const fileIcon = FILE_ICONS[doc.fileType] ?? { bg: "bg-gray-100", color: "text-gray-600", label: "FILE" };
                 return (
-                  <div
+                  <button
                     key={doc.id}
-                    className="flex items-center gap-4 p-4 hover:bg-surface-yellow transition-colors cursor-pointer group"
+                    className="w-full flex items-center gap-4 p-4 hover:bg-surface-yellow transition-colors cursor-pointer group text-left"
+                    onClick={() => setViewingDocument({
+                      id: doc.id,
+                      filename: doc.filename,
+                      fileType: doc.fileType,
+                      mimeType: MIME_TYPES[doc.fileType] ?? "application/octet-stream",
+                    })}
                   >
                     <div className={`w-10 h-10 flex items-center justify-center border-2 border-black ${fileIcon.bg} shadow-neo-sm`}>
                       <span className={`text-xs font-bold ${fileIcon.color}`}>{fileIcon.label}</span>
@@ -198,7 +230,7 @@ function DashboardPage() {
                         </svg>
                       </Button>
                     </div>
-                  </div>
+                  </button>
                 );
               })}
             </div>
@@ -263,6 +295,17 @@ function DashboardPage() {
             </CardContent>
           </Card>
         </section>
+      )}
+
+      {/* Document Viewer Modal */}
+      {viewingDocument && (
+        <DocumentViewer
+          documentId={viewingDocument.id}
+          filename={viewingDocument.filename}
+          fileType={viewingDocument.fileType}
+          mimeType={viewingDocument.mimeType}
+          onClose={() => setViewingDocument(null)}
+        />
       )}
     </div>
   );

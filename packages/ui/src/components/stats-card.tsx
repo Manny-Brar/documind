@@ -37,12 +37,32 @@ export interface StatsCardProps
     label?: string;
   };
   icon?: React.ReactNode;
+  progress?: {
+    value: number; // 0-100
+    color?: "default" | "success" | "warning" | "danger";
+  };
 }
 
+const progressColors = {
+  default: "bg-black",
+  success: "bg-green-500",
+  warning: "bg-yellow-500",
+  danger: "bg-red-500",
+};
+
 const StatsCard = React.forwardRef<HTMLDivElement, StatsCardProps>(
-  ({ className, variant, label, value, trend, icon, ...props }, ref) => {
+  ({ className, variant, label, value, trend, icon, progress, ...props }, ref) => {
     const isPositive = trend?.value && trend.value > 0;
     const isNegative = trend?.value && trend.value < 0;
+
+    // Determine progress color based on value if not specified
+    const getProgressColor = () => {
+      if (progress?.color) return progressColors[progress.color];
+      if (!progress) return progressColors.default;
+      if (progress.value >= 90) return progressColors.danger;
+      if (progress.value >= 75) return progressColors.warning;
+      return progressColors.default;
+    };
 
     return (
       <div
@@ -64,6 +84,18 @@ const StatsCard = React.forwardRef<HTMLDivElement, StatsCardProps>(
         <div className="font-mono text-4xl font-bold tracking-tight text-foreground animate-count-up">
           {typeof value === "number" ? value.toLocaleString() : value}
         </div>
+
+        {/* Progress bar */}
+        {progress && (
+          <div className="mt-3">
+            <div className="h-2 bg-gray-200 border border-black rounded-sm overflow-hidden">
+              <div
+                className={cn("h-full transition-all duration-500", getProgressColor())}
+                style={{ width: `${Math.min(100, Math.max(0, progress.value))}%` }}
+              />
+            </div>
+          </div>
+        )}
 
         {/* Trend indicator */}
         {trend && (
