@@ -62,26 +62,14 @@ model User {
   email         String   @unique @db.VarChar(255)
   emailVerified Boolean  @default(false) @map("email_verified")
 
-  // Email verification
-  emailVerificationToken   String?   @map("email_verification_token") @db.VarChar(255)
-  emailVerificationExpires DateTime? @map("email_verification_expires") @db.Timestamptz
-
-  // Authentication
-  passwordHash         String?   @map("password_hash") @db.VarChar(255)
-  passwordResetToken   String?   @map("password_reset_token") @db.VarChar(255)
-  passwordResetExpires DateTime? @map("password_reset_expires") @db.Timestamptz
-
-  // Profile
-  name      String  @db.VarChar(255)
-  avatarUrl String? @map("avatar_url") @db.VarChar(500)
+  // Profile (name and image required by Better Auth)
+  name  String  @db.VarChar(255)
+  image String? @db.VarChar(500) // Better Auth expects 'image'
 
   // MFA
   mfaEnabled       Boolean  @default(false) @map("mfa_enabled")
   mfaSecret        String?  @map("mfa_secret") @db.VarChar(255)
   mfaRecoveryCodes String[] @map("mfa_recovery_codes")
-
-  // OAuth
-  googleId String? @map("google_id") @db.VarChar(255)
 
   // Security
   failedLoginAttempts Int       @default(0) @map("failed_login_attempts")
@@ -97,13 +85,13 @@ model User {
   memberships       Membership[]
   documents         Document[]
   sessions          Session[]
+  accounts          Account[]
   searchLogs        SearchLog[]
   auditLogs         AuditLog[]
   invitedMembers    Membership[] @relation("InvitedBy")
   createdApiKeys    ApiKey[]     @relation("CreatedBy")
   revokedApiKeys    ApiKey[]     @relation("RevokedBy")
 
-  @@index([googleId])
   @@map("users")
 }
 
@@ -142,24 +130,22 @@ model Membership {
 }
 
 // ============================================================================
-// SESSIONS
+// SESSIONS (Better Auth compatible)
 // ============================================================================
 
 model Session {
   id        String   @id @default(uuid()) @db.Uuid
   userId    String   @map("user_id") @db.Uuid
 
-  tokenHash  String @unique @map("token_hash") @db.VarChar(255)
-  deviceInfo Json?  @map("device_info")
-  ipAddress  String? @map("ip_address") @db.VarChar(45)
-  location   Json?
+  // Better Auth required fields
+  token     String   @unique @db.VarChar(255)
+  expiresAt DateTime @map("expires_at") @db.Timestamptz
+  ipAddress String?  @map("ip_address") @db.VarChar(45)
+  userAgent String?  @map("user_agent") @db.Text
 
-  // Lifecycle
-  lastActiveAt DateTime  @default(now()) @map("last_active_at") @db.Timestamptz
-  expiresAt    DateTime  @map("expires_at") @db.Timestamptz
-  revokedAt    DateTime? @map("revoked_at") @db.Timestamptz
-
+  // Timestamps
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -167,6 +153,55 @@ model Session {
   @@index([userId])
   @@index([expiresAt])
   @@map("sessions")
+}
+
+// ============================================================================
+// ACCOUNTS (Better Auth OAuth)
+// ============================================================================
+
+model Account {
+  id        String @id @default(uuid()) @db.Uuid
+  userId    String @map("user_id") @db.Uuid
+
+  // OAuth provider info
+  accountId  String @map("account_id") @db.VarChar(255)
+  providerId String @map("provider_id") @db.VarChar(50)
+
+  // Tokens
+  accessToken          String?   @map("access_token") @db.Text
+  refreshToken         String?   @map("refresh_token") @db.Text
+  accessTokenExpiresAt DateTime? @map("access_token_expires_at") @db.Timestamptz
+  refreshTokenExpiresAt DateTime? @map("refresh_token_expires_at") @db.Timestamptz
+  scope                String?   @db.Text
+  idToken              String?   @map("id_token") @db.Text
+  password             String?   @db.VarChar(255) // For email/password accounts
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([providerId, accountId])
+  @@map("accounts")
+}
+
+// ============================================================================
+// VERIFICATION (Better Auth email verification)
+// ============================================================================
+
+model Verification {
+  id         String   @id @default(uuid()) @db.Uuid
+  identifier String   @db.VarChar(255)
+  value      String   @db.Text
+  expiresAt  DateTime @map("expires_at") @db.Timestamptz
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([identifier])
+  @@map("verifications")
 }
 
 // ============================================================================

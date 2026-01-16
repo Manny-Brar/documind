@@ -3,9 +3,11 @@ import Fastify from "fastify";
 import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
+import { toNodeHandler } from "better-auth/node";
 import { fastifyTRPCPlugin } from "./trpc/fastify-adapter.js";
 import { appRouter } from "./trpc/router.js";
 import { createContext } from "./trpc/context.js";
+import { auth } from "./auth.js";
 
 const fastify = Fastify({
   logger: {
@@ -51,6 +53,12 @@ async function start() {
   // Health check
   fastify.get("/health", async () => {
     return { status: "ok", timestamp: new Date().toISOString() };
+  });
+
+  // Better Auth handler - mount at /api/auth/*
+  const authHandler = toNodeHandler(auth);
+  fastify.all("/api/auth/*", async (request, reply) => {
+    await authHandler(request.raw, reply.raw);
   });
 
   // Start server
