@@ -93,6 +93,7 @@ function SearchPage() {
   const org = useOrg();
   const [query, setQuery] = useState("");
   const [viewingDocument, setViewingDocument] = useState<ViewableDocument | null>(null);
+  const [queryMode, setQueryMode] = useState<"search" | "question">("search");
   const [searchResults, setSearchResults] = useState<{
     results: Array<{
       documentId: string;
@@ -103,6 +104,13 @@ function SearchPage() {
       pageNumber?: number;
     }>;
     answer: string | null;
+    answerSources: Array<{
+      documentId: string;
+      filename?: string;
+      pageNumber?: number;
+      relevance?: number;
+    }>;
+    tokensUsed: number;
     latencyMs: number;
   } | null>(null);
 
@@ -118,23 +126,28 @@ function SearchPage() {
       setSearchResults({
         results: data.results,
         answer: data.answer,
+        answerSources: data.answerSources,
+        tokensUsed: data.tokensUsed,
         latencyMs: data.latencyMs,
       });
     },
   });
 
   // Handle search
-  const handleSearch = useCallback((searchQuery?: string) => {
+  const handleSearch = useCallback((searchQuery?: string, forceMode?: "search" | "question") => {
     const q = searchQuery || query;
     if (!q.trim()) return;
+
+    // Auto-detect question mode if query ends with ?
+    const mode = forceMode || (q.endsWith("?") ? "question" : queryMode);
 
     searchMutation.mutate({
       orgId: org.id,
       query: q,
-      queryType: q.endsWith("?") ? "question" : "search",
+      queryType: mode,
       limit: 10,
     });
-  }, [query, org.id, searchMutation]);
+  }, [query, org.id, searchMutation, queryMode]);
 
   // Handle pressing enter
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -161,10 +174,44 @@ function SearchPage() {
       {/* Search Box */}
       <Card variant="blue" className="p-8">
         <div className="max-w-3xl mx-auto">
+          {/* Mode Toggle */}
+          <div className="flex items-center gap-2 mb-4">
+            <button
+              className={`px-4 py-2 border-2 border-black font-bold text-sm transition-colors ${
+                queryMode === "search"
+                  ? "bg-black text-white"
+                  : "bg-white hover:bg-gray-100"
+              }`}
+              onClick={() => setQueryMode("search")}
+            >
+              <span className="flex items-center gap-2">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                Search
+              </span>
+            </button>
+            <button
+              className={`px-4 py-2 border-2 border-black font-bold text-sm transition-colors ${
+                queryMode === "question"
+                  ? "bg-black text-white"
+                  : "bg-white hover:bg-gray-100"
+              }`}
+              onClick={() => setQueryMode("question")}
+            >
+              <span className="flex items-center gap-2">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+                Ask AI
+              </span>
+            </button>
+          </div>
+
           <div className="relative">
             <Input
               type="search"
-              placeholder="Ask anything about your documents..."
+              placeholder={queryMode === "question" ? "Ask a question about your documents..." : "Search your documents..."}
               inputSize="lg"
               className="pr-24"
               value={query}
@@ -178,6 +225,8 @@ function SearchPage() {
             >
               {searchMutation.isPending ? (
                 <div className="h-5 w-5 animate-spin border-2 border-white border-t-transparent rounded-full" />
+              ) : queryMode === "question" ? (
+                "Ask"
               ) : (
                 "Search"
               )}
@@ -191,7 +240,8 @@ function SearchPage() {
                 className="text-sm text-primary hover:underline"
                 onClick={() => {
                   setQuery(suggestion);
-                  handleSearch(suggestion);
+                  setQueryMode("question");
+                  handleSearch(suggestion, "question");
                 }}
               >
                 "{suggestion}"
@@ -214,10 +264,63 @@ function SearchPage() {
                   </svg>
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-heading text-sm uppercase tracking-wider text-muted-foreground mb-2">
-                    AI Answer
-                  </h3>
-                  <p className="text-lg">{searchResults.answer}</p>
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-heading text-sm uppercase tracking-wider text-muted-foreground">
+                      AI Answer
+                    </h3>
+                    {searchResults.tokensUsed > 0 && (
+                      <span className="text-xs text-muted-foreground">
+                        {searchResults.tokensUsed.toLocaleString()} tokens
+                      </span>
+                    )}
+                  </div>
+                  <div className="prose prose-sm max-w-none">
+                    <p className="text-lg whitespace-pre-wrap">{searchResults.answer}</p>
+                  </div>
+
+                  {/* Source Citations */}
+                  {searchResults.answerSources.length > 0 && (
+                    <div className="mt-4 pt-4 border-t border-black/20">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                        Sources
+                      </h4>
+                      <div className="flex flex-wrap gap-2">
+                        {searchResults.answerSources.map((source, i) => {
+                          const fileType = source.filename?.split(".").pop() ?? "file";
+                          const fileIcon = FILE_ICONS[fileType] ?? { bg: "bg-gray-100", color: "text-gray-600", label: "FILE" };
+                          return (
+                            <button
+                              key={i}
+                              className="flex items-center gap-2 px-3 py-1.5 border-2 border-black bg-white hover:bg-surface-yellow transition-colors text-sm"
+                              onClick={() => source.filename && setViewingDocument({
+                                id: source.documentId,
+                                filename: source.filename,
+                                fileType,
+                                mimeType: MIME_TYPES[fileType] ?? "application/octet-stream",
+                              })}
+                            >
+                              <span className={`w-5 h-5 flex items-center justify-center text-xs font-bold ${fileIcon.bg} ${fileIcon.color} border border-black`}>
+                                {fileIcon.label.charAt(0)}
+                              </span>
+                              <span className="font-medium truncate max-w-[150px]">
+                                {source.filename ?? "Document"}
+                              </span>
+                              {source.pageNumber && (
+                                <span className="text-xs text-muted-foreground">
+                                  p.{source.pageNumber}
+                                </span>
+                              )}
+                              {source.relevance && (
+                                <Badge variant="outline" className="text-xs">
+                                  {source.relevance}%
+                                </Badge>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </Card>
