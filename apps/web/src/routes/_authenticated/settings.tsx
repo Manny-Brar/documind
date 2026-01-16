@@ -16,6 +16,12 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
 }
 
+function formatNumber(num: number): string {
+  if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(1)}M`;
+  if (num >= 1_000) return `${(num / 1_000).toFixed(1)}K`;
+  return num.toString();
+}
+
 function SettingsPage() {
   const org = useOrg();
   const { data: session } = useSession();
@@ -43,6 +49,16 @@ function SettingsPage() {
 
   // Fetch document stats
   const { data: docStats } = trpc.documents.getStats.useQuery({
+    orgId: org.id,
+  });
+
+  // Fetch API usage
+  const { data: apiUsage } = trpc.billing.getUsage.useQuery({
+    orgId: org.id,
+  });
+
+  // Fetch usage limits
+  const { data: usageLimits } = trpc.billing.checkLimits.useQuery({
     orgId: org.id,
   });
 
@@ -327,6 +343,101 @@ function SettingsPage() {
                   )}
                 </div>
               ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* API Usage */}
+      <Card variant="mint">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>API Usage</CardTitle>
+          {apiUsage?.period && (
+            <span className="text-sm text-muted-foreground">
+              {new Date(apiUsage.period.start).toLocaleDateString()} - {new Date(apiUsage.period.end).toLocaleDateString()}
+            </span>
+          )}
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 sm:grid-cols-4">
+            <div className="p-4 border-2 border-black bg-white shadow-neo-sm">
+              <p className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Searches</p>
+              <p className="font-mono text-2xl font-bold">
+                {formatNumber(apiUsage?.usage.search.requests ?? 0)}
+              </p>
+              {usageLimits?.limits.search.limit && usageLimits.limits.search.limit > 0 && (
+                <>
+                  <p className="text-sm text-muted-foreground">
+                    of {formatNumber(usageLimits.limits.search.limit)}
+                  </p>
+                  <div className="mt-2 h-2 border border-black bg-gray-100">
+                    <div
+                      className={`h-full ${
+                        usageLimits.limits.search.used / usageLimits.limits.search.limit > 0.8
+                          ? "bg-red-500"
+                          : "bg-primary"
+                      }`}
+                      style={{
+                        width: `${Math.min(100, (usageLimits.limits.search.used / usageLimits.limits.search.limit) * 100)}%`,
+                      }}
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+            <div className="p-4 border-2 border-black bg-white shadow-neo-sm">
+              <p className="text-sm font-bold uppercase tracking-wider text-muted-foreground">AI Tokens</p>
+              <p className="font-mono text-2xl font-bold">
+                {formatNumber(apiUsage?.usage.llm.tokens ?? 0)}
+              </p>
+              {usageLimits?.limits.llm.limit && usageLimits.limits.llm.limit > 0 && (
+                <>
+                  <p className="text-sm text-muted-foreground">
+                    of {formatNumber(usageLimits.limits.llm.limit)}
+                  </p>
+                  <div className="mt-2 h-2 border border-black bg-gray-100">
+                    <div
+                      className={`h-full ${
+                        usageLimits.limits.llm.used / usageLimits.limits.llm.limit > 0.8
+                          ? "bg-red-500"
+                          : "bg-primary"
+                      }`}
+                      style={{
+                        width: `${Math.min(100, (usageLimits.limits.llm.used / usageLimits.limits.llm.limit) * 100)}%`,
+                      }}
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+            <div className="p-4 border-2 border-black bg-white shadow-neo-sm">
+              <p className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Embeddings</p>
+              <p className="font-mono text-2xl font-bold">
+                {formatNumber(apiUsage?.usage.embedding.tokens ?? 0)}
+              </p>
+              <p className="text-sm text-muted-foreground">tokens used</p>
+            </div>
+            <div className="p-4 border-2 border-black bg-white shadow-neo-sm">
+              <p className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Est. Cost</p>
+              <p className="font-mono text-2xl font-bold">
+                ${(apiUsage?.totalCost ?? 0).toFixed(2)}
+              </p>
+              <p className="text-sm text-muted-foreground">this period</p>
+            </div>
+          </div>
+
+          {/* Usage Warning */}
+          {usageLimits && !usageLimits.withinLimits && (
+            <div className="p-4 border-2 border-black bg-red-100 flex items-center gap-4">
+              <svg className="w-6 h-6 text-red-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <div>
+                <p className="font-bold text-red-800">Usage limit exceeded</p>
+                <p className="text-sm text-red-700">
+                  Some features may be limited. Consider upgrading your plan.
+                </p>
+              </div>
             </div>
           )}
         </CardContent>
