@@ -83,7 +83,7 @@ function SignupPage() {
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
             {error && (
-              <div className="p-3 text-sm text-red-500 bg-red-50 rounded-md">{error}</div>
+              <div className="p-3 text-sm text-red-500 bg-red-50 dark:bg-red-950 dark:text-red-400 rounded-md border border-red-200 dark:border-red-800">{error}</div>
             )}
 
             {/* Google OAuth Button */}

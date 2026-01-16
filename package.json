@@ -11,7 +11,13 @@
     "typecheck": "turbo typecheck",
     "clean": "turbo clean && rm -rf node_modules",
     "format": "prettier --write \"**/*.{ts,tsx,md,json}\"",
-    "format:check": "prettier --check \"**/*.{ts,tsx,md,json}\""
+    "format:check": "prettier --check \"**/*.{ts,tsx,md,json}\"",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "db:migrate": "pnpm --filter @documind/db db:migrate",
+    "db:push": "pnpm --filter @documind/db db:push",
+    "db:seed": "pnpm --filter @documind/db db:seed",
+    "db:studio": "pnpm --filter @documind/db db:studio"
   },
   "devDependencies": {
     "@types/node": "^22.10.5",

@@ -1,7 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Button } from "@documind/ui";
 import { useSession, signOut } from "../lib/auth-client";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { useTheme } from "../context/theme";
 
 export const Route = createFileRoute("/")({
   component: HomePage,
@@ -38,7 +39,7 @@ const lightColors = {
 function HomePage() {
   const { data: session, isPending } = useSession();
   const navigate = useNavigate();
-  const [isDark, setIsDark] = useState(true);
+  const { isDark, toggleTheme } = useTheme();
   const colors = isDark ? darkColors : lightColors;
 
   // Redirect authenticated users to dashboard
@@ -67,7 +68,7 @@ function HomePage() {
           <div className="flex gap-3 items-center">
             {/* Theme Toggle */}
             <button
-              onClick={() => setIsDark(!isDark)}
+              onClick={toggleTheme}
               className="w-10 h-10 flex items-center justify-center border-2 shadow-[3px_3px_0px_0px] hover:shadow-[4px_4px_0px_0px] hover:-translate-x-0.5 hover:-translate-y-0.5 transition-all"
               style={{
                 backgroundColor: isDark ? colors.bgCard : colors.bg,

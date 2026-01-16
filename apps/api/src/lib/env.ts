@@ -6,7 +6,6 @@ import { validateStorageEnv } from "./storage.js";
 const REQUIRED_ENV_VARS = [
   "DATABASE_URL",
   "BETTER_AUTH_SECRET",
-  "BETTER_AUTH_URL",
 ] as const;
 
 /**
@@ -29,7 +28,7 @@ interface EnvValidationResult {
   config: {
     port: number;
     nodeEnv: string;
-    corsOrigin: string;
+    corsOrigin: string[];
     databaseUrl: string;
     authUrl: string;
     gcsBucket: string;
@@ -82,12 +81,15 @@ export function validateEnv(): EnvValidationResult {
   }
 
   // Build config object
+  const corsOriginStr = process.env.CORS_ORIGIN || "http://localhost:5173,http://localhost:5174";
+  const corsOrigin = corsOriginStr.split(",").map(o => o.trim());
+
   const config = {
     port: parseInt(process.env.PORT || "3001", 10),
     nodeEnv: process.env.NODE_ENV || "development",
-    corsOrigin: process.env.CORS_ORIGIN || "http://localhost:5173",
+    corsOrigin,
     databaseUrl: process.env.DATABASE_URL || "",
-    authUrl: process.env.BETTER_AUTH_URL || "",
+    authUrl: process.env.BETTER_AUTH_URL || `http://localhost:${process.env.PORT || "8080"}`,
     gcsBucket: process.env.GCS_BUCKET || "documind-documents",
     hasGcsCredentials: !!(process.env.GCS_CREDENTIALS || process.env.GOOGLE_APPLICATION_CREDENTIALS),
     hasGoogleOAuth,

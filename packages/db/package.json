@@ -30,6 +30,7 @@
   },
   "devDependencies": {
     "@documind/tsconfig": "workspace:*",
+    "dotenv": "^16.4.7",
     "prisma": "^6.2.1",
     "tsx": "^4.19.2",
     "typescript": "^5.7.3"

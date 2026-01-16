@@ -16,6 +16,12 @@ out
 .env.local
 .env.*.local
 
+# GCP Service Account Keys (sensitive)
+*.json
+!package.json
+!tsconfig.json
+!tsconfig.*.json
+
 # IDE
 .idea
 .vscode
