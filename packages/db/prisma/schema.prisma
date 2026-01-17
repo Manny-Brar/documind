@@ -59,7 +59,7 @@ model Organization {
 // ============================================================================
 
 model User {
-  id            String   @id @default(uuid()) @db.Uuid
+  id            String   @id @db.VarChar(255) // Better Auth generates non-UUID IDs
   email         String   @unique @db.VarChar(255)
   emailVerified Boolean  @default(false) @map("email_verified")
 
@@ -102,14 +102,14 @@ model User {
 
 model Membership {
   id     String @id @default(uuid()) @db.Uuid
-  userId String @map("user_id") @db.Uuid
+  userId String @map("user_id") @db.VarChar(255) // References User with Better Auth ID
   orgId  String @map("org_id") @db.Uuid
 
   role   String @default("member") @db.VarChar(50) // admin, member, viewer
   status String @default("pending") @db.VarChar(50) // pending, active, suspended, removed
 
   // Invitation
-  invitedById       String?   @map("invited_by") @db.Uuid
+  invitedById       String?   @map("invited_by") @db.VarChar(255) // References User
   invitationToken   String?   @map("invitation_token") @db.VarChar(255)
   invitationExpires DateTime? @map("invitation_expires") @db.Timestamptz
 
@@ -135,8 +135,8 @@ model Membership {
 // ============================================================================
 
 model Session {
-  id        String   @id @default(uuid()) @db.Uuid
-  userId    String   @map("user_id") @db.Uuid
+  id        String   @id @db.VarChar(255) // Better Auth generates non-UUID IDs
+  userId    String   @map("user_id") @db.VarChar(255) // References User with Better Auth ID
 
   // Better Auth required fields
   token     String   @unique @db.VarChar(255)
@@ -161,8 +161,8 @@ model Session {
 // ============================================================================
 
 model Account {
-  id        String @id @default(uuid()) @db.Uuid
-  userId    String @map("user_id") @db.Uuid
+  id        String @id @db.VarChar(255) // Better Auth generates non-UUID IDs
+  userId    String @map("user_id") @db.VarChar(255) // References User with Better Auth ID
 
   // OAuth provider info
   accountId  String @map("account_id") @db.VarChar(255)
@@ -194,7 +194,7 @@ model Account {
 // ============================================================================
 
 model Verification {
-  id         String   @id @default(uuid()) @db.Uuid
+  id         String   @id @db.VarChar(255) // Better Auth generates non-UUID IDs
   identifier String   @db.VarChar(255)
   value      String   @db.Text
   expiresAt  DateTime @map("expires_at") @db.Timestamptz
@@ -251,7 +251,7 @@ model DocumentChunk {
 model Document {
   id           String @id @default(uuid()) @db.Uuid
   orgId        String @map("org_id") @db.Uuid
-  uploadedById String? @map("uploaded_by") @db.Uuid
+  uploadedById String? @map("uploaded_by") @db.VarChar(255) // References User
 
   // File info
   filename      String @db.VarChar(500)
@@ -344,7 +344,7 @@ model Integration {
 model SearchLog {
   id     String  @id @default(uuid()) @db.Uuid
   orgId  String  @map("org_id") @db.Uuid
-  userId String? @map("user_id") @db.Uuid
+  userId String? @map("user_id") @db.VarChar(255) // References User
 
   // Query
   query     String @db.Text
@@ -382,7 +382,7 @@ model SearchLog {
 model AuditLog {
   id     String  @id @default(uuid()) @db.Uuid
   orgId  String? @map("org_id") @db.Uuid
-  userId String? @map("user_id") @db.Uuid
+  userId String? @map("user_id") @db.VarChar(255) // References User
 
   // Event
   action       String  @db.VarChar(100) // e.g., auth.login, document.uploaded
@@ -415,7 +415,7 @@ model AuditLog {
 model ApiKey {
   id        String  @id @default(uuid()) @db.Uuid
   orgId     String  @map("org_id") @db.Uuid
-  createdById String? @map("created_by") @db.Uuid
+  createdById String? @map("created_by") @db.VarChar(255) // References User
 
   name      String @db.VarChar(255)
   keyHash   String @unique @map("key_hash") @db.VarChar(255)
@@ -431,7 +431,7 @@ model ApiKey {
   // Lifecycle
   expiresAt  DateTime? @map("expires_at") @db.Timestamptz
   revokedAt  DateTime? @map("revoked_at") @db.Timestamptz
-  revokedById String?   @map("revoked_by") @db.Uuid
+  revokedById String?   @map("revoked_by") @db.VarChar(255) // References User
 
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
 

@@ -14,3 +14,4 @@ export * from "./components/label.js";
 export * from "./components/badge.js";
 export * from "./components/avatar.js";
 export * from "./components/stats-card.js";
+export * from "./components/chart-card.js";

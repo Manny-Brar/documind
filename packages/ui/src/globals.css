@@ -32,13 +32,13 @@
     --neo-gray-500: 240 3% 36%;               /* #5a5a60 - Muted text */
     --neo-gray-900: 240 6% 10%;               /* #1a1a1c - Dark text */
 
-    /* Surface Colors - Light Mode */
+    /* Surface Colors - Light Mode (Vibrant tints matching home page) */
     --neo-surface-main: 240 7% 91%;           /* #e5e5e8 - Main bg */
-    --neo-surface-yellow: 48 100% 90%;        /* Warm yellow surface */
-    --neo-surface-blue: 199 60% 90%;          /* Blue tint surface */
-    --neo-surface-pink: 12 60% 92%;           /* Coral tint surface */
-    --neo-surface-mint: 152 60% 90%;          /* Mint surface */
-    --neo-surface-lavender: 250 60% 92%;      /* Lavender surface */
+    --neo-surface-yellow: 12 85% 88%;         /* Coral-tinted (matches primary) */
+    --neo-surface-blue: 199 75% 82%;          /* Blue-tinted (matches secondary) */
+    --neo-surface-pink: 12 90% 90%;           /* Lighter coral tint */
+    --neo-surface-mint: 78 55% 82%;           /* Lime-tinted (matches accent) */
+    --neo-surface-lavender: 199 60% 88%;      /* Blue-lavender accent */
 
     /* Sidebar - Light Mode */
     --neo-sidebar-bg: 48 100% 92%;            /* Warm yellow sidebar */
@@ -142,13 +142,13 @@
     --shadow-neo-lg: 6px 6px 0px 0px hsl(var(--shadow-color));
     --shadow-neo-pressed: 1px 1px 0px 0px hsl(var(--shadow-color));
 
-    /* Dark mode surface colors - muted versions */
+    /* Dark mode surface colors - vibrant tints matching home page */
     --neo-surface-main: var(--neo-surface-dark);
-    --neo-surface-yellow: 48 30% 20%;
-    --neo-surface-blue: 199 30% 20%;
-    --neo-surface-pink: 12 30% 22%;
-    --neo-surface-mint: 152 30% 20%;
-    --neo-surface-lavender: 250 30% 22%;
+    --neo-surface-yellow: 12 45% 28%;         /* Dark coral-tinted */
+    --neo-surface-blue: 199 50% 26%;          /* Dark blue-tinted */
+    --neo-surface-pink: 12 40% 30%;           /* Dark coral */
+    --neo-surface-mint: 78 40% 26%;           /* Dark lime-tinted */
+    --neo-surface-lavender: 199 35% 28%;      /* Dark blue accent */
 
     /* Dark mode sidebar - slightly elevated */
     --neo-sidebar-bg: 240 3% 18%;

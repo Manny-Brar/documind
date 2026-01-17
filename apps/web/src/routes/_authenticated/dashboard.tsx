@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Button, Card, CardContent, CardHeader, CardTitle, StatsCard, Badge } from "@documind/ui";
+import { Button, Card, CardContent, CardHeader, CardTitle, StatsCard, Badge, ChartCard } from "@documind/ui";
 import { trpc } from "../../lib/trpc";
 import { useOrg } from "../../components/layout/dashboard-layout";
 import { DocumentViewer } from "../../components/document-viewer";
+import { SearchActivityChart, DocumentTypeChart } from "../../components/charts";
 
 // Document type for viewer
 interface ViewableDocument {
@@ -160,6 +161,31 @@ function DashboardPage() {
               </svg>
             }
           />
+        </div>
+      </section>
+
+      {/* Activity Charts */}
+      <section>
+        <h2 className="font-heading text-sm uppercase tracking-wider text-muted-foreground mb-4">
+          Activity
+        </h2>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <ChartCard
+            title="Search Activity"
+            description="Searches over the last 30 days"
+            variant="blue"
+            loading={!searchStats}
+          >
+            <SearchActivityChart data={searchStats?.dailySearches ?? []} />
+          </ChartCard>
+          <ChartCard
+            title="Document Types"
+            description="Distribution by file type"
+            variant="pink"
+            loading={statsLoading}
+          >
+            <DocumentTypeChart data={docStats?.byType ?? []} />
+          </ChartCard>
         </div>
       </section>
 

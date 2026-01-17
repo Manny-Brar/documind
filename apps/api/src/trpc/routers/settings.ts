@@ -193,6 +193,7 @@ export const settingsRouter = router({
         const emailName = input.email.split("@")[0] ?? "User";
         user = await ctx.prisma.user.create({
           data: {
+            id: crypto.randomUUID(),
             email: input.email,
             name: emailName,
             emailVerified: false,

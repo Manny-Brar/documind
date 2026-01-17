@@ -3,8 +3,7 @@ import Fastify from "fastify";
 import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
-import { toNodeHandler } from "better-auth/node";
-import { fastifyTRPCPlugin } from "./trpc/fastify-adapter.js";
+import { fastifyTRPCPlugin } from "@trpc/server/adapters/fastify";
 import { appRouter } from "./trpc/router.js";
 import { createContext } from "./trpc/context.js";
 import { auth } from "./auth.js";
@@ -37,7 +36,18 @@ async function start() {
   });
 
   await fastify.register(helmet, {
-    contentSecurityPolicy: false, // Configure properly in production
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:", "https:"],
+        connectSrc: ["'self'", "https://accounts.google.com"],
+        fontSrc: ["'self'"],
+        objectSrc: ["'none'"],
+        frameAncestors: ["'none'"],
+      },
+    },
   });
 
   await fastify.register(rateLimit, {
@@ -60,9 +70,50 @@ async function start() {
   });
 
   // Better Auth handler - mount at /api/auth/*
-  const authHandler = toNodeHandler(auth);
+  // Using Fetch API approach as recommended by Better Auth docs
   fastify.all("/api/auth/*", async (request, reply) => {
-    await authHandler(request.raw, reply.raw);
+    try {
+      // Build the full URL
+      const protocol = request.protocol;
+      const host = request.hostname;
+      const port = envConfig.config.port;
+      const url = `${protocol}://${host}:${port}${request.url}`;
+
+      // Convert Fastify headers to Headers object
+      const headers = new Headers();
+      for (const [key, value] of Object.entries(request.headers)) {
+        if (value) {
+          headers.set(key, Array.isArray(value) ? value.join(", ") : value);
+        }
+      }
+
+      // Create Fetch API compatible request
+      const fetchRequest = new Request(url, {
+        method: request.method,
+        headers,
+        body: request.method !== "GET" && request.method !== "HEAD"
+          ? JSON.stringify(request.body)
+          : undefined,
+      });
+
+      // Call Better Auth handler
+      const response = await auth.handler(fetchRequest);
+
+      // Set response status
+      reply.status(response.status);
+
+      // Copy response headers
+      response.headers.forEach((value, key) => {
+        reply.header(key, value);
+      });
+
+      // Send response body
+      const body = await response.text();
+      return reply.send(body);
+    } catch (err) {
+      fastify.log.error({ err, url: request.url }, "Auth handler error");
+      return reply.status(500).send({ error: "Authentication error" });
+    }
   });
 
   // Start server

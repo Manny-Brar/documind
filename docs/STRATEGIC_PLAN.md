@@ -2,9 +2,13 @@
 
 ## Executive Summary
 
-DocuMind is an AI-powered document search and knowledge management platform that leverages Retrieval-Augmented Generation (RAG) to help organizations find answers in their document repositories instantly. This document outlines our strategic direction, competitive positioning, monetization strategy, and feature roadmap.
+DocuMind is an **Organizational Intelligence Platform** that combines Google's managed RAG infrastructure with a proprietary Knowledge Graph layer to help organizations not just search their documents, but understand the relationships, entities, and insights within them.
 
-**Market Opportunity**: The global RAG market is valued at $1.92B in 2025 and projected to reach $10.2B by 2030 (CAGR 39.66%). Enterprise AI spending averages $85,521/month in 2025.
+**Strategic Pivot (January 2025):** Following Google's November 2025 launch of Gemini File Search, we are pivoting from building custom RAG infrastructure to leveraging managed services with a differentiated Knowledge Graph layer on top.
+
+**Market Opportunity**: The global RAG market is valued at $1.92B in 2025 and projected to reach $10.2B by 2030 (CAGR 39.66%). Knowledge Graph RAG is emerging as the next evolution, with Microsoft's GraphRAG demonstrating 70-90% reduction in hallucinations.
+
+**Our Moat**: While RAG infrastructure becomes commoditized, Knowledge Graphs representing organizational intelligence become increasingly valuable and harder to replicate over time.
 
 ---
 
@@ -42,11 +46,25 @@ DocuMind is an AI-powered document search and knowledge management platform that
 
 ### Our Differentiation Strategy
 
-1. **Vertex AI Integration**: Native Google Cloud for enterprise-grade embeddings
-2. **Neobrutalism Design**: Distinctive, memorable UI that stands out
-3. **Multi-LLM Support**: Gemini, GPT-4, Claude - not locked to one provider
-4. **Transparent Pricing**: No hidden costs, usage visible in dashboard
-5. **Self-Hosted Option**: For privacy-conscious enterprises
+1. **Knowledge Graph Layer**: Entity extraction, relationship mapping, cross-document intelligence
+2. **Managed Infrastructure**: Google File Search handles RAG complexity, we focus on value
+3. **Organizational Intelligence**: Not just search - understand who, what, when, and how things connect
+4. **Neobrutalism Design**: Distinctive, memorable UI that stands out
+5. **Transparent Pricing**: No hidden costs, usage visible in dashboard
+6. **Graph-Enhanced Queries**: "Show me all contracts involving Company X" - impossible with basic RAG
+
+### Why Knowledge Graph is Our Moat
+
+> "Companies are increasingly seeing knowledge graphs as their long-term moat, since they can act as a scalable structured representation of domain expertise."
+
+| Capability | Basic RAG (Competitors) | DocuMind (Graph + RAG) |
+|------------|-------------------------|------------------------|
+| Find documents | ✅ | ✅ |
+| Answer questions | ✅ | ✅ |
+| Entity visibility | ❌ | ✅ "Who is mentioned?" |
+| Relationship mapping | ❌ | ✅ "How are they connected?" |
+| Cross-doc intelligence | ❌ | ✅ "What else involves this?" |
+| Proactive insights | ❌ | ✅ "Deadlines approaching" |
 
 ---
 
@@ -140,44 +158,57 @@ Based on 2025 trends, we'll use a **credits-based hybrid model** that combines p
 
 ## Feature Roadmap
 
-### Phase 1: Foundation (Current - Complete)
+### Phase 1: MVP Foundation (Current)
 - [x] Document upload (PDF, DOCX, TXT, MD)
-- [x] Semantic vector search
+- [x] Semantic vector search (custom implementation)
 - [x] RAG answer generation
 - [x] Multi-org support
 - [x] Basic usage tracking
 - [x] Google OAuth
+- [ ] **Fix auth context** - Complete session handling
+- [ ] **Complete dashboard UI** - Stats, activity
+- [ ] **Production deployment** - GCP setup
 
-### Phase 2: Growth Features (Q1 2025)
-- [ ] **Google Drive Integration** - Sync documents automatically
-- [ ] **Slack Integration** - Search from Slack, get answers
+### Phase 2: Managed RAG + Knowledge Graph (Q1-Q2 2025)
+
+**Infrastructure Pivot:**
+- [ ] **Migrate to Gemini File Search** - Replace custom chunking/embedding/vector search
+- [ ] **Remove custom RAG code** - Simplify codebase significantly
+
+**Knowledge Graph Layer (Our Differentiation):**
+- [ ] **Entity Extraction Pipeline** - LLM-based NER for people, companies, projects, dates, money
+- [ ] **Entity Resolution** - Normalize "John Smith" = "J. Smith", deduplicate
+- [ ] **Relationship Mapping** - WORKS_AT, AUTHORED, MENTIONS, SIGNED, etc.
+- [ ] **Graph Storage** - PostgreSQL schema for entities + relationships
+- [ ] **Graph-Enhanced Queries** - Add entity context to searches
+- [ ] **Entity Detail Pages** - View all docs mentioning an entity
+- [ ] **Relationship Visualization** - See how things connect
+
+**Document Intelligence:**
+- [ ] **Quality Scoring** - Freshness, completeness, structure
+- [ ] **Staleness Detection** - Flag outdated documents
+- [ ] **Cross-Document Links** - "This doc references that doc"
+
+### Phase 3: Proactive Intelligence (Q2 2025)
+- [ ] **Weekly Digests** - AI-generated summary of changes
+- [ ] **Alert Rules** - "Notify me when X is mentioned"
+- [ ] **Deadline Tracking** - Extract and monitor dates
+- [ ] **Email Integration** - Resend for notifications
+- [ ] **Slack Integration** - Alerts and search
+
+### Phase 4: Advanced Features (Q3-Q4 2025)
+- [ ] **AI Agents** - Multi-tool autonomous workflows
+- [ ] **Table Extraction** - Structured data from PDFs
+- [ ] **Google Drive Sync** - Automatic document ingestion
 - [ ] **API Access** - Embed search in other apps
-- [ ] **Advanced Analytics** - Search patterns, popular docs
-- [ ] **Custom Branding** - White-label for agencies
-- [ ] **Batch Upload** - Bulk document ingestion
-
-### Phase 3: Enterprise Features (Q2 2025)
 - [ ] **SAML/OIDC SSO** - Enterprise identity
 - [ ] **Audit Logs** - Complete activity trail
-- [ ] **Data Residency** - EU/US region selection
-- [ ] **Admin Console** - User management, permissions
-- [ ] **Compliance Dashboard** - SOC 2 reporting
-- [ ] **Custom Connectors** - API for any data source
 
-### Phase 4: Advanced AI (Q3 2025)
-- [ ] **Multimodal Search** - Images, diagrams in docs
-- [ ] **Agentic Workflows** - Multi-step document tasks
-- [ ] **Smart Summaries** - Auto-summarize new documents
-- [ ] **Knowledge Graphs** - Entity relationships
-- [ ] **Custom Models** - Fine-tuned for customer data
-- [ ] **Conversation Memory** - Follow-up questions
-
-### Phase 5: Platform (Q4 2025)
+### Phase 5: Platform (2026)
 - [ ] **Marketplace** - Third-party integrations
-- [ ] **Templates** - Pre-built document workflows
 - [ ] **Self-Hosted** - On-premise deployment
-- [ ] **Embedded Search** - Widget for websites
 - [ ] **Mobile Apps** - iOS/Android
+- [ ] **Custom Models** - Fine-tuned for customer data
 
 ---
 
@@ -227,41 +258,83 @@ Based on 2025 trends, we'll use a **credits-based hybrid model** that combines p
 
 ---
 
-## Technical Architecture Enhancements
+## Technical Architecture
 
-### Current Stack
+### Target Architecture (Post-Pivot)
+
 ```
-Frontend: React + TanStack Router
-Backend: Fastify + tRPC
-Database: PostgreSQL + Prisma
-Vector DB: PostgreSQL (pgvector planned)
-AI: Vertex AI / OpenAI
-Storage: Google Cloud Storage
-Auth: Better Auth
+┌─────────────────────────────────────────────────────────────────┐
+│  OUR LAYER (Differentiation)                                    │
+│                                                                 │
+│  Frontend: React + TanStack Router (Neobrutalism UI)           │
+│  Backend: Fastify + tRPC                                       │
+│  Database: PostgreSQL + Prisma (entities, relationships only)  │
+│  Auth: Better Auth                                             │
+│  Email: Resend                                                 │
+│                                                                 │
+│  NEW: Entity Extraction (LLM calls)                            │
+│  NEW: Knowledge Graph queries                                  │
+│  NEW: Graph-enhanced search                                    │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              │ API calls
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  GOOGLE LAYER (Managed - Pay per use)                          │
+│                                                                 │
+│  Gemini File Search: Storage, chunking, embeddings, search     │
+│  Gemini LLM: Answer generation with citations                  │
+│  (Optional) Vertex AI Search: Google Drive connector           │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-### Planned Improvements
+### What Google Handles (We Don't Build)
+- Document storage (FREE)
+- Automatic chunking
+- Embedding generation (FREE at query time)
+- Vector indexing
+- Semantic search
+- RAG answer generation
+- Source citations
 
-1. **pgvector Migration**
-   - Move embeddings from JSON to pgvector
-   - 10x faster similarity search
-   - Index optimization
+### What We Build (Our Value)
+- Entity extraction pipeline
+- Entity resolution and normalization
+- Knowledge Graph storage
+- Graph-enhanced queries
+- Cross-document intelligence
+- Proactive alerts and digests
+- Beautiful UI/UX
 
-2. **Caching Layer**
-   - Redis for session/search caching
-   - Reduce LLM calls by 40%
+### Code Removal (Phase 2)
+```
+REMOVE:
+- chunker.ts (Google handles)
+- embeddings.ts (Google handles)
+- vector-search.ts (Google handles)
+- indexer.ts → simplify to entity extraction only
+- DocumentChunk model (not needed)
+- pgvector migration (not needed)
 
-3. **Background Jobs**
-   - Bull/BullMQ for document processing
-   - Async indexing pipeline
+KEEP:
+- Better Auth integration
+- Multi-tenant organization model
+- tRPC API structure
+- UI components
+- Usage tracking
+```
 
-4. **CDN for Documents**
-   - Cloudflare for document delivery
-   - Faster preview loading
+### Cost Comparison
 
-5. **Observability**
-   - OpenTelemetry for tracing
-   - Per-customer cost tracking
+| Component | Custom RAG (Before) | Managed + Graph (After) |
+|-----------|---------------------|-------------------------|
+| Storage | GCS + PostgreSQL | Google File Search (FREE) |
+| Embeddings | Vertex AI calls | Google (FREE at query) |
+| Vector DB | pgvector (ops burden) | Google (managed) |
+| Search | Custom code | Google API |
+| Infrastructure | $300/mo @ 10K docs | $180/mo @ 10K docs |
+
+**Savings: ~40% + reduced engineering complexity**
 
 ---
 
@@ -319,24 +392,56 @@ Auth: Better Auth
 
 ---
 
-## Immediate Next Steps (30 Days)
+## Immediate Next Steps (8 Weeks)
 
-1. **Week 1**: Complete OAuth fix, deploy production
-2. **Week 2**: Launch beta signup page, collect waitlist
-3. **Week 3**: Add Google Drive integration
-4. **Week 4**: Launch on Product Hunt
+### Phase 1 Completion (Weeks 1-2)
+1. Fix tRPC auth context (session extraction from Better Auth)
+2. Complete dashboard UI with stats
+3. Test current MVP end-to-end
+4. Deploy to production (GCP)
+
+### Phase 2a: Infrastructure Pivot (Weeks 3-4)
+1. Integrate Gemini File Search API
+2. Remove custom chunking/embedding/vector code
+3. Migrate document upload flow
+4. Verify search quality parity
+
+### Phase 2b: Knowledge Graph (Weeks 5-6)
+1. Implement entity extraction pipeline
+2. Create graph schema (entities, relationships)
+3. Build entity resolution logic
+4. Add entity display to search results
+
+### Phase 2c: Intelligence Layer (Weeks 7-8)
+1. Graph-enhanced queries
+2. Entity detail pages
+3. Document quality scoring
+4. Polish UI and launch beta
 
 ---
 
 ## Appendix: Research Sources
 
+### Market & Business
 - [Enterprise RAG Guide 2025](https://www.glean.com/blog/the-definitive-guide-to-ai-based-enterprise-search-for-2025)
 - [RAG Business Value](https://www.uptech.team/blog/rag-use-cases)
 - [AI Pricing Models 2025](https://pilot.com/blog/ai-pricing-economics-2025)
-- [Enterprise RAG Platforms](https://www.firecrawl.dev/blog/best-enterprise-rag-platforms-2025)
-- [SaaS Pricing Trends](https://metronome.com/blog/ai-pricing-in-practice-2025-field-report-from-leading-saas-teams)
+- [Enterprise Knowledge Systems 2026-2030](https://nstarxinc.com/blog/the-next-frontier-of-rag-how-enterprise-knowledge-systems-will-evolve-2026-2030/)
+- [Knowledge Graph RAG Opportunity](https://medium.com/enterprise-rag/understanding-the-knowledge-graph-rag-opportunity-694b61261a9c)
+
+### Google Services (Strategic Pivot)
+- [Gemini File Search Announcement](https://blog.google/technology/developers/file-search-gemini-api/)
+- [File Search Documentation](https://ai.google.dev/gemini-api/docs/file-search)
+- [Vertex AI RAG Engine](https://cloud.google.com/blog/products/ai-machine-learning/introducing-vertex-ai-rag-engine)
+- [RAG Pipeline Simplification](https://jduncan.io/blog/2025-11-08-google-file-search-rag-simplification/)
+
+### Knowledge Graphs
+- [Microsoft GraphRAG](https://microsoft.github.io/graphrag/)
+- [DeepLearning.AI - Knowledge Graphs for RAG](https://www.deeplearning.ai/short-courses/knowledge-graphs-rag/)
+- [Neo4j RAG Tutorial](https://neo4j.com/blog/developer/rag-tutorial/)
+- [GPT-NER Entity Extraction](https://aclanthology.org/2025.findings-naacl.239/)
 
 ---
 
 *Document created: January 2025*
-*Last updated: Iteration 2 of DocuMind development*
+*Last updated: Strategic Pivot to Managed RAG + Knowledge Graph*

@@ -1,4 +1,4 @@
-import type { FastifyPluginCallback, FastifyRequest, FastifyReply } from "fastify";
+import type { FastifyPluginAsync, FastifyRequest, FastifyReply } from "fastify";
 import { fastifyTRPCPlugin as baseFastifyTRPCPlugin } from "@trpc/server/adapters/fastify";
 import type { AnyRouter } from "@trpc/server";
 
@@ -10,14 +10,12 @@ interface FastifyTRPCPluginOptions<TRouter extends AnyRouter> {
   };
 }
 
-export const fastifyTRPCPlugin: FastifyPluginCallback<FastifyTRPCPluginOptions<AnyRouter>> = (
+export const fastifyTRPCPlugin: FastifyPluginAsync<FastifyTRPCPluginOptions<AnyRouter>> = async (
   fastify,
-  opts,
-  done
+  opts
 ) => {
-  fastify.register(baseFastifyTRPCPlugin, {
+  await fastify.register(baseFastifyTRPCPlugin, {
     prefix: opts.prefix,
     trpcOptions: opts.trpcOptions,
   });
-  done();
 };
