@@ -2,6 +2,7 @@ import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import type { Prisma } from "@documind/db";
 import { router, protectedProcedure, verifyMembership, verifyAdmin } from "../trpc.js";
+import { sendInvitationEmail } from "../../lib/email.js";
 
 export const settingsRouter = router({
   /**
@@ -179,6 +180,12 @@ export const settingsRouter = router({
       const invitationToken = crypto.randomUUID();
       const invitationExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
+      // Get organization name for the email
+      const org = await ctx.prisma.organization.findUnique({
+        where: { id: input.orgId },
+        select: { name: true },
+      });
+
       // Create pending membership
       const newMembership = await ctx.prisma.membership.create({
         data: {
@@ -201,7 +208,16 @@ export const settingsRouter = router({
         },
       });
 
-      // TODO: Send invitation email
+      // Send invitation email (non-blocking)
+      sendInvitationEmail({
+        to: input.email,
+        inviterName: ctx.user.name,
+        organizationName: org?.name || "your team",
+        role: input.role,
+        invitationToken,
+      }).catch((err) => {
+        console.error("Failed to send invitation email:", err);
+      });
 
       return {
         id: newMembership.id,
