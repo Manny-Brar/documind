@@ -6,76 +6,80 @@
   :root {
     /* ============================================
        NEOBRUTALISM DESIGN SYSTEM - DOCUMIND
+       Matched to Main Website Color Palette
        ============================================ */
 
-    /* Brand Colors */
-    --neo-primary: 217.2 91.2% 52.9%;       /* #2563EB - Strong blue */
-    --neo-primary-dark: 221.2 83.2% 47.1%;  /* #1D4ED8 */
-    --neo-secondary: 330.4 81.2% 60.4%;     /* #EC4899 - Hot pink */
-    --neo-secondary-dark: 335.1 77.6% 50%;  /* #DB2777 */
+    /* Brand Colors - Coral/Blue/Lime Palette */
+    --neo-primary: 12 100% 66%;               /* #ff6c51 - Coral */
+    --neo-primary-dark: 12 100% 56%;          /* Darker coral for hover */
+    --neo-secondary: 199 100% 32%;            /* #0074a4 - Deep Blue */
+    --neo-secondary-dark: 199 100% 26%;       /* Darker blue for hover */
+    --neo-accent: 78 64% 52%;                 /* #9cd03b - Lime Green */
+    --neo-accent-dark: 78 64% 42%;            /* Darker lime for hover */
 
     /* Semantic Colors */
-    --neo-success: 84.8 85.2% 34.5%;        /* #65A30D - Lime-700 */
-    --neo-warning: 32.1 94.6% 43.7%;        /* #D97706 - Amber-600 */
-    --neo-error: 0 72.2% 50.6%;             /* #DC2626 - Red-600 */
-    --neo-info: 188.7 94.5% 42.7%;          /* #0891B2 - Cyan-600 */
+    --neo-success: 78 64% 42%;                /* Lime-based success */
+    --neo-warning: 32.1 94.6% 43.7%;          /* #D97706 - Amber-600 */
+    --neo-error: 0 72.2% 50.6%;               /* #DC2626 - Red-600 */
+    --neo-info: 199 100% 32%;                 /* Deep blue info */
 
-    /* Neutrals */
+    /* Light Mode - Washed Grey Palette */
     --neo-black: 0 0% 0%;
     --neo-white: 0 0% 100%;
-    --neo-gray-50: 0 0% 98%;
-    --neo-gray-100: 0 0% 96.1%;
-    --neo-gray-200: 0 0% 89.8%;
-    --neo-gray-500: 0 0% 45.1%;
-    --neo-gray-900: 0 0% 9%;
+    --neo-gray-50: 240 10% 98%;               /* Very light grey */
+    --neo-gray-100: 240 10% 95%;              /* #f2f2f4 - Light card */
+    --neo-gray-200: 240 3% 79%;               /* #c8c8cc - Light border */
+    --neo-gray-500: 240 3% 36%;               /* #5a5a60 - Muted text */
+    --neo-gray-900: 240 6% 10%;               /* #1a1a1c - Dark text */
 
-    /* Surface Colors - Pastel Accents */
-    --neo-surface-main: 0 0% 100%;
-    --neo-surface-yellow: 54.9 96.7% 88%;   /* #FEF9C3 */
-    --neo-surface-blue: 213.8 93.9% 93.7%;  /* #DBEAFE */
-    --neo-surface-pink: 325.7 77.8% 94.7%;  /* #FCE7F3 */
-    --neo-surface-mint: 151.8 80.4% 90%;    /* #D1FAE5 */
-    --neo-surface-lavender: 250 91.7% 95.5%; /* #EDE9FE */
+    /* Surface Colors - Light Mode */
+    --neo-surface-main: 240 7% 91%;           /* #e5e5e8 - Main bg */
+    --neo-surface-yellow: 48 100% 90%;        /* Warm yellow surface */
+    --neo-surface-blue: 199 60% 90%;          /* Blue tint surface */
+    --neo-surface-pink: 12 60% 92%;           /* Coral tint surface */
+    --neo-surface-mint: 152 60% 90%;          /* Mint surface */
+    --neo-surface-lavender: 250 60% 92%;      /* Lavender surface */
 
-    /* Sidebar */
-    --neo-sidebar-bg: 48 96.5% 89%;         /* #FEF3C7 */
-    --neo-sidebar-hover: 47.9 95.8% 76.1%;  /* #FDE68A */
+    /* Sidebar - Light Mode */
+    --neo-sidebar-bg: 48 100% 92%;            /* Warm yellow sidebar */
+    --neo-sidebar-hover: 48 100% 85%;         /* Darker on hover */
 
     /* ============================================
-       SHADCN/UI COMPATIBILITY LAYER
+       SHADCN/UI COMPATIBILITY LAYER - Light Mode
        ============================================ */
-    --background: var(--neo-white);
-    --foreground: var(--neo-gray-900);
-    --card: var(--neo-white);
-    --card-foreground: var(--neo-gray-900);
-    --popover: var(--neo-white);
-    --popover-foreground: var(--neo-gray-900);
-    --primary: var(--neo-primary);
-    --primary-foreground: var(--neo-white);
-    --secondary: var(--neo-gray-100);
-    --secondary-foreground: var(--neo-gray-900);
-    --muted: var(--neo-gray-100);
-    --muted-foreground: var(--neo-gray-500);
-    --accent: var(--neo-surface-yellow);
-    --accent-foreground: var(--neo-gray-900);
+    --background: 240 7% 91%;                 /* #e5e5e8 - Washed grey */
+    --foreground: 240 6% 10%;                 /* #1a1a1c - Dark text */
+    --card: 240 10% 95%;                      /* #f2f2f4 - Light card */
+    --card-foreground: 240 6% 10%;
+    --popover: 240 10% 95%;
+    --popover-foreground: 240 6% 10%;
+    --primary: var(--neo-primary);            /* Coral */
+    --primary-foreground: 0 0% 100%;          /* White text on coral */
+    --secondary: var(--neo-secondary);        /* Deep blue */
+    --secondary-foreground: 0 0% 100%;        /* White text on blue */
+    --muted: 240 7% 85%;
+    --muted-foreground: 240 3% 36%;           /* #5a5a60 */
+    --accent: var(--neo-accent);              /* Lime green */
+    --accent-foreground: 240 6% 10%;          /* Dark text on lime */
     --destructive: var(--neo-error);
-    --destructive-foreground: var(--neo-white);
-    --border: var(--neo-black);
-    --input: var(--neo-black);
+    --destructive-foreground: 0 0% 100%;
+    --border: 240 3% 79%;                     /* #c8c8cc - Light border */
+    --input: 240 3% 79%;
     --ring: var(--neo-primary);
 
     /* Border Radius - Minimal for brutalism */
     --radius: 0.25rem;
 
     /* ============================================
-       NEOBRUTALISM SPECIFIC TOKENS
+       NEOBRUTALISM SPECIFIC TOKENS - Light Mode
        ============================================ */
 
-    /* Shadows - Hard edges, no blur */
-    --shadow-neo: 4px 4px 0px 0px hsl(var(--neo-black));
-    --shadow-neo-sm: 2px 2px 0px 0px hsl(var(--neo-black));
-    --shadow-neo-lg: 6px 6px 0px 0px hsl(var(--neo-black));
-    --shadow-neo-pressed: 1px 1px 0px 0px hsl(var(--neo-black));
+    /* Shadows - Hard edges using light mode shadow color */
+    --shadow-color: 240 3% 71%;               /* #b0b0b5 shadow */
+    --shadow-neo: 4px 4px 0px 0px hsl(var(--shadow-color));
+    --shadow-neo-sm: 2px 2px 0px 0px hsl(var(--shadow-color));
+    --shadow-neo-lg: 6px 6px 0px 0px hsl(var(--shadow-color));
+    --shadow-neo-pressed: 1px 1px 0px 0px hsl(var(--shadow-color));
     --shadow-neo-primary: 4px 4px 0px 0px hsl(var(--neo-primary));
     --shadow-neo-error: 4px 4px 0px 0px hsl(var(--neo-error));
 
@@ -90,48 +94,65 @@
   }
 
   .dark {
-    --neo-bg-dark: 0 0% 3.9%;
-    --neo-surface-dark: 0 0% 9%;
-    --neo-surface-dark-elevated: 0 0% 14.9%;
-    --neo-border-dark: 0 0% 25.1%;
+    /* ============================================
+       DARK MODE - Washed Charcoal Palette
+       ============================================ */
+    --neo-bg-dark: 240 3% 21%;                /* #363639 - Main bg */
+    --neo-surface-dark: 240 3% 26%;           /* #434347 - Card bg */
+    --neo-surface-dark-elevated: 240 3% 30%;  /* Elevated surface */
+    --neo-border-dark: 240 5% 17%;            /* #2a2a2d - Border */
 
-    --background: var(--neo-bg-dark);
-    --foreground: var(--neo-gray-50);
-    --card: var(--neo-surface-dark);
-    --card-foreground: var(--neo-gray-50);
-    --popover: var(--neo-surface-dark);
-    --popover-foreground: var(--neo-gray-50);
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: var(--neo-gray-900);
-    --secondary: var(--neo-surface-dark-elevated);
-    --secondary-foreground: var(--neo-gray-50);
-    --muted: var(--neo-surface-dark-elevated);
-    --muted-foreground: 0 0% 63.9%;
-    --accent: var(--neo-surface-dark-elevated);
-    --accent-foreground: var(--neo-gray-50);
-    --destructive: 0 62.8% 50.6%;
-    --destructive-foreground: var(--neo-gray-50);
-    --border: var(--neo-border-dark);
-    --input: var(--neo-border-dark);
-    --ring: 217.2 91.2% 59.8%;
+    /* Dark mode backgrounds */
+    --background: 240 3% 21%;                 /* #363639 */
+    --foreground: 0 0% 100%;                  /* White text */
+    --card: 240 3% 26%;                       /* #434347 */
+    --card-foreground: 0 0% 100%;
+    --popover: 240 3% 26%;
+    --popover-foreground: 0 0% 100%;
 
-    /* Dark mode shadows - subtle glow effect */
-    --shadow-neo: 4px 4px 0px 0px hsl(var(--neo-gray-200) / 0.2);
-    --shadow-neo-sm: 2px 2px 0px 0px hsl(var(--neo-gray-200) / 0.2);
-    --shadow-neo-lg: 6px 6px 0px 0px hsl(var(--neo-gray-200) / 0.3);
-    --shadow-neo-pressed: 1px 1px 0px 0px hsl(var(--neo-gray-200) / 0.1);
+    /* Primary stays coral, slightly brighter for dark mode */
+    --primary: 12 100% 68%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary (deep blue) stays same */
+    --secondary: 199 100% 36%;
+    --secondary-foreground: 0 0% 100%;
+
+    /* Muted colors for dark mode */
+    --muted: 240 3% 30%;
+    --muted-foreground: 240 2% 73%;           /* #b8b8bc */
+
+    /* Accent (lime) slightly adjusted for dark */
+    --accent: 78 64% 55%;
+    --accent-foreground: 240 6% 10%;
+
+    /* Destructive */
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Borders and inputs */
+    --border: 240 5% 17%;                     /* #2a2a2d */
+    --input: 240 5% 17%;
+    --ring: 12 100% 68%;
+
+    /* Dark mode shadows - using dark border color */
+    --shadow-color: 240 5% 17%;               /* #2a2a2d */
+    --shadow-neo: 4px 4px 0px 0px hsl(var(--shadow-color));
+    --shadow-neo-sm: 2px 2px 0px 0px hsl(var(--shadow-color));
+    --shadow-neo-lg: 6px 6px 0px 0px hsl(var(--shadow-color));
+    --shadow-neo-pressed: 1px 1px 0px 0px hsl(var(--shadow-color));
 
     /* Dark mode surface colors - muted versions */
     --neo-surface-main: var(--neo-surface-dark);
-    --neo-surface-yellow: 48 30% 15%;
-    --neo-surface-blue: 217 30% 15%;
-    --neo-surface-pink: 330 30% 15%;
-    --neo-surface-mint: 152 30% 15%;
-    --neo-surface-lavender: 250 30% 15%;
+    --neo-surface-yellow: 48 30% 20%;
+    --neo-surface-blue: 199 30% 20%;
+    --neo-surface-pink: 12 30% 22%;
+    --neo-surface-mint: 152 30% 20%;
+    --neo-surface-lavender: 250 30% 22%;
 
-    /* Dark mode sidebar - dark charcoal */
-    --neo-sidebar-bg: 0 0% 12%;
-    --neo-sidebar-hover: 0 0% 18%;
+    /* Dark mode sidebar - slightly elevated */
+    --neo-sidebar-bg: 240 3% 18%;
+    --neo-sidebar-hover: 240 3% 24%;
   }
 }
 
@@ -181,7 +202,7 @@
 
   /* Card surfaces */
   .neo-card {
-    @apply border-2 border-black bg-white;
+    @apply border-2 border-border bg-card;
     box-shadow: var(--shadow-neo);
   }
 
@@ -266,13 +287,13 @@
     box-shadow: var(--shadow-neo-error);
   }
 
-  /* Border utilities */
+  /* Border utilities - using CSS variable for theme support */
   .border-neo {
-    @apply border-2 border-black;
+    @apply border-2 border-border;
   }
 
   .border-neo-thick {
-    @apply border-[3px] border-black;
+    @apply border-[3px] border-border;
   }
 
   /* Transition utility */
@@ -313,6 +334,27 @@
 
   .bg-neo-sidebar {
     background-color: hsl(var(--neo-sidebar-bg));
+  }
+
+  /* Surface backgrounds using semantic names */
+  .bg-surface-yellow {
+    background-color: hsl(var(--neo-surface-yellow));
+  }
+
+  .bg-surface-blue {
+    background-color: hsl(var(--neo-surface-blue));
+  }
+
+  .bg-surface-pink {
+    background-color: hsl(var(--neo-surface-pink));
+  }
+
+  .bg-surface-mint {
+    background-color: hsl(var(--neo-surface-mint));
+  }
+
+  .bg-surface-lavender {
+    background-color: hsl(var(--neo-surface-lavender));
   }
 }
 
