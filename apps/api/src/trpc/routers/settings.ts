@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import type { Prisma } from "@documind/db";
-import { router, protectedProcedure } from "../trpc.js";
+import { router, protectedProcedure, verifyMembership, verifyAdmin } from "../trpc.js";
 
 export const settingsRouter = router({
   /**
@@ -62,22 +62,8 @@ export const settingsRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      // Verify admin membership
-      const membership = await ctx.prisma.membership.findFirst({
-        where: {
-          userId: ctx.user.id,
-          orgId: input.orgId,
-          role: "admin",
-          status: "active",
-        },
-      });
-
-      if (!membership) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "Only admins can update organization settings",
-        });
-      }
+      // Verify admin membership using helper
+      await verifyAdmin(ctx.prisma, ctx.user.id, input.orgId);
 
       const org = await ctx.prisma.organization.update({
         where: { id: input.orgId },
@@ -103,21 +89,8 @@ export const settingsRouter = router({
   getMembers: protectedProcedure
     .input(z.object({ orgId: z.string().uuid() }))
     .query(async ({ ctx, input }) => {
-      // Verify membership
-      const membership = await ctx.prisma.membership.findFirst({
-        where: {
-          userId: ctx.user.id,
-          orgId: input.orgId,
-          status: "active",
-        },
-      });
-
-      if (!membership) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "You don't have access to this organization",
-        });
-      }
+      // Verify membership using helper (any role can view members)
+      await verifyMembership(ctx.prisma, ctx.user.id, input.orgId);
 
       const members = await ctx.prisma.membership.findMany({
         where: {
@@ -166,22 +139,8 @@ export const settingsRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      // Verify admin membership
-      const membership = await ctx.prisma.membership.findFirst({
-        where: {
-          userId: ctx.user.id,
-          orgId: input.orgId,
-          role: "admin",
-          status: "active",
-        },
-      });
-
-      if (!membership) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "Only admins can invite members",
-        });
-      }
+      // Verify admin membership using helper
+      await verifyAdmin(ctx.prisma, ctx.user.id, input.orgId);
 
       // Check if user exists
       let user = await ctx.prisma.user.findUnique({
