@@ -35,10 +35,10 @@ function AuthenticatedLayout() {
   // Loading state
   if (sessionPending) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-surface-yellow">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
-          <div className="inline-block h-12 w-12 animate-spin border-4 border-black border-t-transparent mb-4" />
-          <p className="font-heading text-lg uppercase tracking-wider">Loading...</p>
+          <div className="inline-block h-12 w-12 animate-spin border-4 border-border border-t-transparent mb-4" />
+          <p className="font-heading text-lg uppercase tracking-wider text-foreground">Loading...</p>
         </div>
       </div>
     );
@@ -53,10 +53,10 @@ function AuthenticatedLayout() {
   // Show loading while fetching org or creating one
   if (orgPending || createOrgMutation.isPending || (orgs && orgs.length === 0)) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-surface-yellow">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
-          <div className="inline-block h-12 w-12 animate-spin border-4 border-black border-t-transparent mb-4" />
-          <p className="font-heading text-lg uppercase tracking-wider">
+          <div className="inline-block h-12 w-12 animate-spin border-4 border-border border-t-transparent mb-4" />
+          <p className="font-heading text-lg uppercase tracking-wider text-foreground">
             {createOrgMutation.isPending ? "Creating workspace..." : "Loading workspace..."}
           </p>
         </div>

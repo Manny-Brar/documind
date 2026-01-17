@@ -48,10 +48,10 @@ export function Sidebar({ orgName = "My Workspace", planName = "Free Plan" }: Si
   const location = useLocation();
 
   return (
-    <aside className="fixed left-0 top-0 z-40 h-screen w-sidebar border-r-[3px] border-black bg-sidebar flex flex-col">
+    <aside className="fixed left-0 top-0 z-40 h-screen w-sidebar border-r-[3px] border-border bg-sidebar text-foreground flex flex-col">
       {/* Logo */}
-      <div className="flex items-center gap-3 p-6 border-b-2 border-black">
-        <div className="flex h-10 w-10 items-center justify-center border-2 border-black bg-primary shadow-neo-sm">
+      <div className="flex items-center gap-3 p-6 border-b-2 border-border">
+        <div className="flex h-10 w-10 items-center justify-center border-2 border-border bg-primary shadow-neo-sm">
           <span className="font-heading text-lg font-bold text-white">D</span>
         </div>
         <span className="font-heading text-xl font-bold uppercase tracking-tight">
@@ -74,7 +74,7 @@ export function Sidebar({ orgName = "My Workspace", planName = "Free Plan" }: Si
                 "font-medium text-sm transition-all duration-100",
                 "border-2 border-transparent",
                 isActive
-                  ? "bg-white border-black shadow-neo-sm translate-x-1"
+                  ? "bg-card border-border shadow-neo-sm translate-x-1"
                   : "hover:bg-sidebar-hover hover:translate-x-1"
               )}
             >
@@ -86,14 +86,14 @@ export function Sidebar({ orgName = "My Workspace", planName = "Free Plan" }: Si
       </nav>
 
       {/* Divider */}
-      <div className="mx-4 border-t-2 border-black" />
+      <div className="mx-4 border-t-2 border-border" />
 
       {/* Organization Selector */}
       <div className="p-4">
         <button
           className={cn(
             "w-full flex items-center justify-between gap-2 px-4 py-3 rounded-sm",
-            "bg-white border-2 border-black shadow-neo-sm",
+            "bg-card border-2 border-border shadow-neo-sm",
             "font-medium text-sm text-left",
             "transition-all duration-100",
             "hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-neo",
@@ -115,7 +115,7 @@ export function Sidebar({ orgName = "My Workspace", planName = "Free Plan" }: Si
             to="/settings"
             className={cn(
               "mt-3 w-full flex items-center justify-center gap-2 px-4 py-2 rounded-sm",
-              "bg-primary text-white border-2 border-black shadow-neo-sm",
+              "bg-primary text-white border-2 border-border shadow-neo-sm",
               "font-heading text-xs font-bold uppercase tracking-wider",
               "transition-all duration-100",
               "hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-neo",

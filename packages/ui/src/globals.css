@@ -120,6 +120,18 @@
     --shadow-neo-sm: 2px 2px 0px 0px hsl(var(--neo-gray-200) / 0.2);
     --shadow-neo-lg: 6px 6px 0px 0px hsl(var(--neo-gray-200) / 0.3);
     --shadow-neo-pressed: 1px 1px 0px 0px hsl(var(--neo-gray-200) / 0.1);
+
+    /* Dark mode surface colors - muted versions */
+    --neo-surface-main: var(--neo-surface-dark);
+    --neo-surface-yellow: 48 30% 15%;
+    --neo-surface-blue: 217 30% 15%;
+    --neo-surface-pink: 330 30% 15%;
+    --neo-surface-mint: 152 30% 15%;
+    --neo-surface-lavender: 250 30% 15%;
+
+    /* Dark mode sidebar - dark charcoal */
+    --neo-sidebar-bg: 0 0% 12%;
+    --neo-sidebar-hover: 0 0% 18%;
   }
 }
 
