@@ -3,11 +3,18 @@ import Fastify from "fastify";
 import cors from "@fastify/cors";
 import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
+import rawBody from "fastify-raw-body";
 import { fastifyTRPCPlugin } from "@trpc/server/adapters/fastify";
 import { appRouter } from "./trpc/router.js";
 import { createContext } from "./trpc/context.js";
 import { auth } from "./auth.js";
 import { validateEnvOrExit } from "./lib/env.js";
+import { prisma } from "@documind/db";
+import {
+  isStripeConfigured,
+  verifyWebhookSignature,
+  handleWebhookEvent,
+} from "./lib/stripe.js";
 
 // Validate environment at startup
 const envConfig = validateEnvOrExit();
@@ -53,6 +60,13 @@ async function start() {
   await fastify.register(rateLimit, {
     max: 100,
     timeWindow: "1 minute",
+  });
+
+  // Register raw body for Stripe webhooks
+  await fastify.register(rawBody, {
+    field: "rawBody",
+    global: false, // Only add to routes that need it
+    runFirst: true,
   });
 
   // Register tRPC
@@ -115,6 +129,53 @@ async function start() {
       return reply.status(500).send({ error: "Authentication error" });
     }
   });
+
+  // Stripe webhook handler
+  fastify.post(
+    "/api/webhooks/stripe",
+    {
+      config: {
+        rawBody: true, // Enable raw body for this route
+      },
+    },
+    async (request, reply) => {
+      // Check if Stripe is configured
+      if (!isStripeConfigured()) {
+        fastify.log.warn("Stripe webhook received but Stripe is not configured");
+        return reply.status(400).send({ error: "Stripe not configured" });
+      }
+
+      const signature = request.headers["stripe-signature"] as string;
+      if (!signature) {
+        fastify.log.warn("Stripe webhook missing signature");
+        return reply.status(400).send({ error: "Missing stripe-signature header" });
+      }
+
+      try {
+        // Get raw body for signature verification
+        const rawBody = (request as unknown as { rawBody: Buffer }).rawBody;
+        if (!rawBody) {
+          fastify.log.error("Raw body not available for Stripe webhook");
+          return reply.status(400).send({ error: "Raw body not available" });
+        }
+
+        // Verify signature and get event
+        const event = verifyWebhookSignature(rawBody, signature);
+
+        fastify.log.info({ type: event.type, id: event.id }, "Processing Stripe webhook");
+
+        // Handle the event
+        await handleWebhookEvent(prisma, event);
+
+        return reply.status(200).send({ received: true });
+      } catch (err) {
+        fastify.log.error({ err }, "Stripe webhook error");
+        return reply.status(400).send({
+          error: err instanceof Error ? err.message : "Webhook error",
+        });
+      }
+    }
+  );
 
   // Start server
   const port = envConfig.config.port;

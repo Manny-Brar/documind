@@ -6,6 +6,11 @@ import {
   getDailyUsage,
   checkUsageLimits,
 } from "../../lib/usage-tracker.js";
+import {
+  isStripeConfigured,
+  createCheckoutSession as stripeCreateCheckout,
+  createPortalSession as stripeCreatePortal,
+} from "../../lib/stripe.js";
 
 export const billingRouter = router({
   /**
@@ -239,13 +244,14 @@ export const billingRouter = router({
   }),
 
   /**
-   * Create Stripe checkout session (placeholder)
+   * Create Stripe checkout session for plan upgrade
    */
   createCheckoutSession: protectedProcedure
     .input(
       z.object({
         orgId: z.string().uuid(),
         planId: z.string(),
+        billingInterval: z.enum(["month", "year"]).default("month"),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -257,6 +263,11 @@ export const billingRouter = router({
           status: "active",
           role: { in: ["owner", "admin"] },
         },
+        include: {
+          org: {
+            select: { name: true },
+          },
+        },
       });
 
       if (!membership) {
@@ -266,25 +277,41 @@ export const billingRouter = router({
         });
       }
 
-      // TODO: Implement Stripe checkout session creation
-      // For now, return a placeholder
-      // const stripeKey = process.env.STRIPE_SECRET_KEY;
-      // if (!stripeKey) {
-      //   throw new TRPCError({
-      //     code: "INTERNAL_SERVER_ERROR",
-      //     message: "Stripe not configured",
-      //   });
-      // }
+      // Check if Stripe is configured
+      if (!isStripeConfigured()) {
+        return {
+          success: false,
+          message: "Stripe integration not yet configured. Please set STRIPE_SECRET_KEY.",
+          checkoutUrl: null,
+        };
+      }
 
-      return {
-        success: false,
-        message: "Stripe integration not yet configured. Please set STRIPE_SECRET_KEY.",
-        checkoutUrl: null,
-      };
+      try {
+        const result = await stripeCreateCheckout(
+          ctx.prisma,
+          input.orgId,
+          input.planId,
+          ctx.user.email,
+          membership.org.name,
+          input.billingInterval
+        );
+
+        return {
+          success: true,
+          message: null,
+          checkoutUrl: result.url,
+        };
+      } catch (error) {
+        console.error("Stripe checkout error:", error);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: error instanceof Error ? error.message : "Failed to create checkout session",
+        });
+      }
     }),
 
   /**
-   * Create Stripe portal session (placeholder)
+   * Create Stripe portal session for subscription management
    */
   createPortalSession: protectedProcedure
     .input(
@@ -310,6 +337,15 @@ export const billingRouter = router({
         });
       }
 
+      // Check if Stripe is configured
+      if (!isStripeConfigured()) {
+        return {
+          success: false,
+          message: "Stripe integration not yet configured.",
+          portalUrl: null,
+        };
+      }
+
       const org = await ctx.prisma.organization.findUnique({
         where: { id: input.orgId },
         select: { stripeCustomerId: true },
@@ -322,11 +358,20 @@ export const billingRouter = router({
         });
       }
 
-      // TODO: Implement Stripe portal session creation
-      return {
-        success: false,
-        message: "Stripe integration not yet configured.",
-        portalUrl: null,
-      };
+      try {
+        const result = await stripeCreatePortal(org.stripeCustomerId);
+
+        return {
+          success: true,
+          message: null,
+          portalUrl: result.url,
+        };
+      } catch (error) {
+        console.error("Stripe portal error:", error);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: error instanceof Error ? error.message : "Failed to create portal session",
+        });
+      }
     }),
 });
