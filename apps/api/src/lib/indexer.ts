@@ -18,6 +18,11 @@ import { downloadFile } from "./storage.js";
 import { extractText, type FileType } from "./text-extractor.js";
 import { chunkText, mergeSmallChunks, type Chunk } from "./chunker.js";
 import { generateBatchEmbeddings, isEmbeddingConfigured } from "./embeddings.js";
+import {
+  extractEntitiesFromChunks,
+  isEntityExtractionConfigured,
+  type ChunkExtractionInput,
+} from "./entity-extractor.js";
 
 export interface IndexingOptions {
   /** Chunk size in characters */
@@ -28,6 +33,8 @@ export interface IndexingOptions {
   embeddingBatchSize?: number;
   /** Minimum chunk size (smaller chunks are merged) */
   minChunkSize?: number;
+  /** Enable entity extraction (Knowledge Graph) */
+  enableEntityExtraction?: boolean;
 }
 
 export interface IndexingResult {
@@ -37,6 +44,9 @@ export interface IndexingResult {
   totalTokens: number;
   extractionTime: number;
   embeddingTime: number;
+  entityExtractionTime: number;
+  entitiesExtracted: number;
+  relationshipsExtracted: number;
   totalTime: number;
   error?: string;
 }
@@ -50,6 +60,7 @@ const DEFAULT_OPTIONS: IndexingOptions = {
   chunkOverlap: 200,
   embeddingBatchSize: 20,
   minChunkSize: 100,
+  enableEntityExtraction: true,
 };
 
 /**
@@ -64,6 +75,9 @@ export async function indexDocument(
   const startTime = Date.now();
   let extractionTime = 0;
   let embeddingTime = 0;
+  let entityExtractionTime = 0;
+  let entitiesExtracted = 0;
+  let relationshipsExtracted = 0;
 
   try {
     // Get document from database
@@ -86,6 +100,9 @@ export async function indexDocument(
         totalTokens: 0,
         extractionTime: 0,
         embeddingTime: 0,
+        entityExtractionTime: 0,
+        entitiesExtracted: 0,
+        relationshipsExtracted: 0,
         totalTime: Date.now() - startTime,
         error: "Document not found",
       };
@@ -99,6 +116,9 @@ export async function indexDocument(
         totalTokens: 0,
         extractionTime: 0,
         embeddingTime: 0,
+        entityExtractionTime: 0,
+        entitiesExtracted: 0,
+        relationshipsExtracted: 0,
         totalTime: Date.now() - startTime,
         error: "Document has no storage path",
       };
@@ -155,9 +175,40 @@ export async function indexDocument(
 
     // Step 5: Store chunks in database
     console.log(`[Indexer] Storing ${chunksWithEmbeddings.length} chunks...`);
-    await storeChunks(prisma, document.id, document.orgId, chunksWithEmbeddings);
+    const storedChunkIds = await storeChunks(prisma, document.id, document.orgId, chunksWithEmbeddings);
 
-    // Step 6: Update document status
+    // Step 6: Extract entities for Knowledge Graph (if enabled)
+    if (opts.enableEntityExtraction) {
+      console.log(`[Indexer] Extracting entities for Knowledge Graph...`);
+      const entityExtractionStart = Date.now();
+
+      // Prepare chunk inputs for entity extraction
+      const chunkInputs: ChunkExtractionInput[] = chunksWithEmbeddings.map((chunk, index) => ({
+        chunkId: storedChunkIds[index] ?? "",
+        content: chunk.content,
+        documentId: document.id,
+      })).filter((c) => c.chunkId);
+
+      try {
+        const entityResult = await extractEntitiesFromChunks(
+          prisma,
+          document.orgId,
+          chunkInputs
+        );
+        entitiesExtracted = entityResult.entitiesExtracted;
+        relationshipsExtracted = entityResult.relationshipsExtracted;
+        entityExtractionTime = Date.now() - entityExtractionStart;
+
+        console.log(
+          `[Indexer] Extracted ${entitiesExtracted} entities, ${relationshipsExtracted} relationships`
+        );
+      } catch (entityError) {
+        console.error(`[Indexer] Entity extraction failed (non-fatal):`, entityError);
+        entityExtractionTime = Date.now() - entityExtractionStart;
+      }
+    }
+
+    // Step 7: Update document status
     const totalTokens = chunksWithEmbeddings.reduce((sum, c) => sum + c.tokenCount, 0);
     await prisma.document.update({
       where: { id: documentId },
@@ -168,6 +219,8 @@ export async function indexDocument(
         metadata: {
           chunksCount: chunksWithEmbeddings.length,
           totalTokens,
+          entitiesExtracted,
+          relationshipsExtracted,
           extractedAt: new Date().toISOString(),
         },
       },
@@ -182,6 +235,9 @@ export async function indexDocument(
       totalTokens,
       extractionTime,
       embeddingTime,
+      entityExtractionTime,
+      entitiesExtracted,
+      relationshipsExtracted,
       totalTime: Date.now() - startTime,
     };
   } catch (error) {
@@ -204,6 +260,9 @@ export async function indexDocument(
       totalTokens: 0,
       extractionTime,
       embeddingTime,
+      entityExtractionTime,
+      entitiesExtracted,
+      relationshipsExtracted,
       totalTime: Date.now() - startTime,
       error: errorMessage,
     };
@@ -254,21 +313,24 @@ async function generateChunkEmbeddings(
 /**
  * Store chunks in database using raw SQL
  * This approach works even before the Prisma migration is fully integrated
+ * Returns array of chunk IDs for entity extraction
  */
 async function storeChunks(
   prisma: PrismaClient,
   documentId: string,
   orgId: string,
   chunks: ChunkWithEmbedding[]
-): Promise<void> {
+): Promise<string[]> {
   // Delete existing chunks for this document using raw SQL
   await prisma.$executeRaw`
     DELETE FROM document_chunks WHERE document_id = ${documentId}::uuid
   `;
 
-  // Insert new chunks using raw SQL
+  const chunkIds: string[] = [];
+
+  // Insert new chunks using raw SQL with RETURNING
   for (const chunk of chunks) {
-    await prisma.$executeRaw`
+    const result = await prisma.$queryRaw<[{ id: string }]>`
       INSERT INTO document_chunks (
         id, document_id, org_id, content, chunk_index, token_count,
         start_offset, end_offset, page_number, embedding, metadata,
@@ -288,8 +350,14 @@ async function storeChunks(
         NOW(),
         NOW()
       )
+      RETURNING id
     `;
+    if (result[0]?.id) {
+      chunkIds.push(result[0].id);
+    }
   }
+
+  return chunkIds;
 }
 
 /**
@@ -363,7 +431,10 @@ export async function getIndexingStats(
   processing: number;
   failed: number;
   totalChunks: number;
+  totalEntities: number;
+  totalRelationships: number;
   embeddingConfigured: boolean;
+  entityExtractionConfigured: boolean;
 }> {
   // Get document counts by status
   const docCounts = await prisma.document.groupBy({
@@ -384,6 +455,23 @@ export async function getIndexingStats(
     chunkCount = 0;
   }
 
+  // Get entity and relationship counts
+  let entityCount = 0;
+  let relationshipCount = 0;
+  try {
+    const entityResult = await prisma.$queryRaw<[{ count: bigint }]>`
+      SELECT COUNT(*) as count FROM entities WHERE org_id = ${orgId}::uuid
+    `;
+    entityCount = Number(entityResult[0]?.count ?? 0);
+
+    const relResult = await prisma.$queryRaw<[{ count: bigint }]>`
+      SELECT COUNT(*) as count FROM relationships WHERE org_id = ${orgId}::uuid
+    `;
+    relationshipCount = Number(relResult[0]?.count ?? 0);
+  } catch {
+    // Tables might not exist yet
+  }
+
   const statusMap = new Map<string, number>();
   for (const d of docCounts) {
     statusMap.set(d.indexStatus, d._count);
@@ -398,6 +486,9 @@ export async function getIndexingStats(
     processing: statusMap.get("processing") ?? 0,
     failed: statusMap.get("failed") ?? 0,
     totalChunks: chunkCount,
+    totalEntities: entityCount,
+    totalRelationships: relationshipCount,
     embeddingConfigured: isEmbeddingConfigured(),
+    entityExtractionConfigured: isEntityExtractionConfigured(),
   };
 }

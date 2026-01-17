@@ -1,8 +1,27 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import type { Prisma } from "@documind/db";
+import { Prisma } from "@documind/db";
 import { router, protectedProcedure, verifyMembership, verifyAdmin } from "../trpc.js";
 import { sendInvitationEmail } from "../../lib/email.js";
+
+// Type for member query result
+interface MemberResult {
+  id: string;
+  role: string;
+  status: string;
+  joinedAt: Date | null;
+  createdAt: Date;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    image: string | null;
+  };
+  invitedBy: {
+    id: string;
+    name: string;
+  } | null;
+}
 
 export const settingsRouter = router({
   /**
@@ -117,7 +136,7 @@ export const settingsRouter = router({
         orderBy: { createdAt: "asc" },
       });
 
-      return members.map((m) => ({
+      return members.map((m: MemberResult) => ({
         id: m.id,
         user: m.user,
         role: m.role,

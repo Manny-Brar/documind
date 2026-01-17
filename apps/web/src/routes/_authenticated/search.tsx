@@ -1,9 +1,36 @@
 import { useState, useCallback } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { Input, Button, Card, Badge } from "@documind/ui";
 import { trpc } from "../../lib/trpc";
 import { useOrg } from "../../components/layout/dashboard-layout";
 import { DocumentViewer } from "../../components/document-viewer";
+
+// Entity type styling
+interface EntityStyle {
+  bg: string;
+  color: string;
+  icon: string;
+}
+
+const ENTITY_TYPES: Record<string, EntityStyle> = {
+  PERSON: { bg: "bg-blue-100", color: "text-blue-700", icon: "P" },
+  ORGANIZATION: { bg: "bg-purple-100", color: "text-purple-700", icon: "O" },
+  LOCATION: { bg: "bg-green-100", color: "text-green-700", icon: "L" },
+  DATE: { bg: "bg-orange-100", color: "text-orange-700", icon: "D" },
+  CONCEPT: { bg: "bg-pink-100", color: "text-pink-700", icon: "C" },
+  PRODUCT: { bg: "bg-cyan-100", color: "text-cyan-700", icon: "Pr" },
+  EVENT: { bg: "bg-yellow-100", color: "text-yellow-700", icon: "E" },
+  TOPIC: { bg: "bg-indigo-100", color: "text-indigo-700", icon: "T" },
+  MONEY: { bg: "bg-emerald-100", color: "text-emerald-700", icon: "$" },
+  TECHNOLOGY: { bg: "bg-violet-100", color: "text-violet-700", icon: "Te" },
+  OTHER: { bg: "bg-gray-100", color: "text-gray-700", icon: "?" },
+};
+
+const DEFAULT_ENTITY_STYLE: EntityStyle = { bg: "bg-gray-100", color: "text-gray-700", icon: "?" };
+
+function getEntityStyle(type: string): EntityStyle {
+  return ENTITY_TYPES[type] ?? DEFAULT_ENTITY_STYLE;
+}
 
 export const Route = createFileRoute("/_authenticated/search")({
   component: SearchPage,
@@ -112,6 +139,22 @@ function SearchPage() {
     }>;
     tokensUsed: number;
     latencyMs: number;
+    // Entity context
+    entities: Array<{
+      id: string;
+      name: string;
+      type: string;
+      mentionCount: number;
+      confidence: number;
+    }>;
+    relatedEntities: Array<{
+      id: string;
+      name: string;
+      type: string;
+      relationshipType: string;
+      direction: "incoming" | "outgoing";
+    }>;
+    entitySummary: string;
   } | null>(null);
 
   // Get recent searches
@@ -129,6 +172,9 @@ function SearchPage() {
         answerSources: data.answerSources,
         tokensUsed: data.tokensUsed,
         latencyMs: data.latencyMs,
+        entities: data.entities,
+        relatedEntities: data.relatedEntities,
+        entitySummary: data.entitySummary,
       });
     },
   });
@@ -333,6 +379,77 @@ function SearchPage() {
                   )}
                 </div>
               </div>
+            </Card>
+          )}
+
+          {/* Entity Context */}
+          {searchResults.entities.length > 0 && (
+            <Card className="p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-heading text-sm uppercase tracking-wider text-muted-foreground">
+                  Related Entities
+                </h3>
+                <Link to="/entities" className="text-xs text-primary hover:underline">
+                  Explore Graph
+                </Link>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {searchResults.entities.slice(0, 8).map((entity) => {
+                  const style = getEntityStyle(entity.type);
+                  return (
+                    <Link
+                      key={entity.id}
+                      to="/entities"
+                      search={{ entityId: entity.id }}
+                      className={`inline-flex items-center gap-2 px-3 py-1.5 border-2 border-black ${style.bg} shadow-neo-sm hover:shadow-none hover:translate-x-0.5 hover:translate-y-0.5 transition-all`}
+                    >
+                      <span className={`text-xs font-bold ${style.color}`}>
+                        {style.icon}
+                      </span>
+                      <span className="text-sm font-medium">{entity.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        ({entity.mentionCount})
+                      </span>
+                    </Link>
+                  );
+                })}
+                {searchResults.entities.length > 8 && (
+                  <Link
+                    to="/entities"
+                    className="inline-flex items-center px-3 py-1.5 border-2 border-black bg-gray-100 text-sm font-medium hover:bg-gray-200"
+                  >
+                    +{searchResults.entities.length - 8} more
+                  </Link>
+                )}
+              </div>
+
+              {/* Related Entities via Relationships */}
+              {searchResults.relatedEntities.length > 0 && (
+                <div className="mt-4 pt-3 border-t border-black/20">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                    Connected Entities
+                  </h4>
+                  <div className="flex flex-wrap gap-2">
+                    {searchResults.relatedEntities.slice(0, 5).map((rel) => {
+                      const style = getEntityStyle(rel.type);
+                      return (
+                        <Link
+                          key={rel.id}
+                          to="/entities"
+                          search={{ entityId: rel.id }}
+                          className="inline-flex items-center gap-1.5 px-2 py-1 border border-gray-300 rounded text-xs hover:bg-gray-50"
+                        >
+                          <span className={style.color}>{rel.direction === "outgoing" ? "→" : "←"}</span>
+                          <span className="font-medium">{rel.name}</span>
+                          <span className="text-muted-foreground">
+                            {rel.relationshipType.replace(/_/g, " ").toLowerCase()}
+                          </span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </Card>
           )}
 

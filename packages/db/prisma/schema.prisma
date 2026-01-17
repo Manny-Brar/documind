@@ -43,13 +43,16 @@ model Organization {
   deletedAt DateTime? @map("deleted_at") @db.Timestamptz
 
   // Relations
-  memberships   Membership[]
-  documents     Document[]
-  integrations  Integration[]
-  apiKeys       ApiKey[]
-  searchLogs    SearchLog[]
-  auditLogs     AuditLog[]
-  usageRecords  UsageRecord[]
+  memberships     Membership[]
+  documents       Document[]
+  integrations    Integration[]
+  apiKeys         ApiKey[]
+  searchLogs      SearchLog[]
+  auditLogs       AuditLog[]
+  usageRecords    UsageRecord[]
+  entities        Entity[]
+  relationships   Relationship[]
+  slackWorkspaces SlackWorkspace[]
 
   @@map("organizations")
 }
@@ -83,15 +86,16 @@ model User {
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
   // Relations
-  memberships       Membership[]
-  documents         Document[]
-  sessions          Session[]
-  accounts          Account[]
-  searchLogs        SearchLog[]
-  auditLogs         AuditLog[]
-  invitedMembers    Membership[] @relation("InvitedBy")
-  createdApiKeys    ApiKey[]     @relation("CreatedBy")
-  revokedApiKeys    ApiKey[]     @relation("RevokedBy")
+  memberships        Membership[]
+  documents          Document[]
+  sessions           Session[]
+  accounts           Account[]
+  searchLogs         SearchLog[]
+  auditLogs          AuditLog[]
+  invitedMembers     Membership[] @relation("InvitedBy")
+  createdApiKeys     ApiKey[]     @relation("CreatedBy")
+  revokedApiKeys     ApiKey[]     @relation("RevokedBy")
+  slackUserMappings  SlackUserMapping[]
 
   @@map("users")
 }
@@ -236,7 +240,8 @@ model DocumentChunk {
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
 
   // Relations
-  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  document Document        @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  mentions EntityMention[]
 
   @@unique([documentId, chunkIndex])
   @@index([orgId])
@@ -285,9 +290,10 @@ model Document {
   deletedAt DateTime? @map("deleted_at") @db.Timestamptz
 
   // Relations
-  org        Organization    @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  uploadedBy User?           @relation(fields: [uploadedById], references: [id])
-  chunks     DocumentChunk[]
+  org          Organization         @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  uploadedBy   User?                @relation(fields: [uploadedById], references: [id])
+  chunks       DocumentChunk[]
+  slackThreads SlackIndexedThread[] // Slack threads that were indexed into this document
 
   @@index([orgId])
   @@index([orgId, source, sourceId])
@@ -479,4 +485,349 @@ model UsageRecord {
   @@index([orgId, periodStart])
   @@index([orgId, usageType, periodStart])
   @@map("usage_records")
+}
+
+// ============================================================================
+// KNOWLEDGE GRAPH: ENTITIES
+// ============================================================================
+
+// Entity types for classification
+// PERSON, ORGANIZATION, LOCATION, DATE, CONCEPT, PRODUCT, EVENT, TOPIC
+enum EntityType {
+  // Core entity types
+  PERSON
+  ORGANIZATION
+  LOCATION
+  DATE
+  CONCEPT
+  PRODUCT
+  EVENT
+  TOPIC
+  MONEY
+  TECHNOLOGY
+  OTHER
+
+  // Slack-specific entity types (for Slack message indexing)
+  SLACK_WORKSPACE   // The Slack workspace/team
+  SLACK_USER        // Individual Slack user (links to PERSON)
+  SLACK_CHANNEL     // Slack channel (public, private, DM)
+  SLACK_THREAD      // Conversation thread
+  SLACK_MESSAGE     // Individual message
+  SLACK_BOT         // Bot account (distinct from human users)
+  SLACK_FILE        // File shared in Slack
+  SLACK_REACTION    // Emoji reaction on a message
+}
+
+model Entity {
+  id    String @id @default(uuid()) @db.Uuid
+  orgId String @map("org_id") @db.Uuid
+
+  // Entity identification
+  name           String     @db.VarChar(500)           // Canonical/normalized name
+  type           EntityType @default(OTHER)
+  normalizedName String     @map("normalized_name") @db.VarChar(500) // Lowercased for matching
+
+  // Aliases for entity resolution (e.g., "John Smith", "J. Smith", "John")
+  aliases String[] @default([])
+
+  // Embedding for semantic entity matching/deduplication
+  embedding Json? @default("[]")
+
+  // Metadata (additional structured info about the entity)
+  metadata Json @default("{}")
+
+  // Extraction confidence (0-1, average across mentions)
+  confidence Float @default(0.5)
+
+  // Counts for quick access
+  mentionCount   Int @default(0) @map("mention_count")
+  documentCount  Int @default(0) @map("document_count")
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  org                   Organization      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  mentions              EntityMention[]
+  relationshipsAsSource Relationship[]    @relation("SourceEntity")
+  relationshipsAsTarget Relationship[]    @relation("TargetEntity")
+
+  @@unique([orgId, normalizedName, type])
+  @@index([orgId])
+  @@index([orgId, type])
+  @@index([normalizedName])
+  @@index([orgId, mentionCount(sort: Desc)])
+  @@map("entities")
+}
+
+// ============================================================================
+// KNOWLEDGE GRAPH: ENTITY MENTIONS
+// ============================================================================
+
+model EntityMention {
+  id       String @id @default(uuid()) @db.Uuid
+  entityId String @map("entity_id") @db.Uuid
+  chunkId  String @map("chunk_id") @db.Uuid
+  orgId    String @map("org_id") @db.Uuid
+
+  // Mention details
+  mentionText   String @map("mention_text") @db.VarChar(500)  // Actual text in document
+  contextBefore String @default("") @map("context_before") @db.VarChar(200) // Text before mention
+  contextAfter  String @default("") @map("context_after") @db.VarChar(200)  // Text after mention
+
+  // Position in chunk
+  startOffset Int @map("start_offset")
+  endOffset   Int @map("end_offset")
+
+  // Extraction confidence (0-1)
+  confidence Float @default(0.5)
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  // Relations
+  entity Entity        @relation(fields: [entityId], references: [id], onDelete: Cascade)
+  chunk  DocumentChunk @relation(fields: [chunkId], references: [id], onDelete: Cascade)
+
+  @@index([entityId])
+  @@index([chunkId])
+  @@index([orgId])
+  @@map("entity_mentions")
+}
+
+// ============================================================================
+// KNOWLEDGE GRAPH: RELATIONSHIPS
+// ============================================================================
+
+// Relationship types between entities
+enum RelationshipType {
+  // Person relationships
+  WORKS_FOR       // Person -> Organization
+  REPORTS_TO      // Person -> Person
+  COLLABORATES    // Person <-> Person
+  AUTHORED        // Person -> Document/Content
+  MENTIONED       // Person/Org -> Topic/Concept
+
+  // Organization relationships
+  SUBSIDIARY_OF   // Organization -> Organization
+  PARTNER_OF      // Organization <-> Organization
+  COMPETES_WITH   // Organization <-> Organization
+
+  // Topic/Concept relationships
+  DISCUSSES       // Any -> Topic
+  RELATES_TO      // Generic relationship
+  LOCATED_IN      // Any -> Location
+  OCCURRED_ON     // Event -> Date
+  INVOLVES        // Event -> Person/Organization
+
+  // Generic
+  ASSOCIATED      // Generic association
+  OTHER           // Fallback
+
+  // Slack-specific structural relationships
+  MEMBER_OF       // SLACK_USER -> SLACK_WORKSPACE
+  CONTAINS        // SLACK_CHANNEL -> SLACK_MESSAGE, SLACK_THREAD -> SLACK_MESSAGE
+  PART_OF         // SLACK_MESSAGE -> SLACK_THREAD
+
+  // Slack-specific communication relationships
+  AUTHORED_BY     // SLACK_MESSAGE -> SLACK_USER (attribution)
+  POSTED_IN       // SLACK_USER -> SLACK_CHANNEL (activity)
+  REPLIED_TO      // SLACK_MESSAGE -> SLACK_MESSAGE (thread flow)
+  MENTIONED_IN    // SLACK_USER -> SLACK_MESSAGE (who was @mentioned)
+
+  // Slack-specific collaborative relationships
+  COLLABORATED_IN // SLACK_USER <-> SLACK_USER (co-participation in threads)
+  ACTIVE_IN       // SLACK_USER -> SLACK_THREAD (thread participation)
+
+  // Slack-specific semantic relationships
+  REFERENCES      // SLACK_MESSAGE -> SLACK_FILE
+  SHARES          // SLACK_USER -> SLACK_FILE
+
+  // Slack-specific signal relationships (for RAG confidence)
+  REACTED_WITH    // SLACK_USER -> SLACK_MESSAGE (individual reaction)
+  REACTED_TO      // SLACK_REACTION -> SLACK_MESSAGE (aggregated)
+  PINNED_IN       // SLACK_MESSAGE -> SLACK_CHANNEL (importance signal)
+}
+
+model Relationship {
+  id       String @id @default(uuid()) @db.Uuid
+  orgId    String @map("org_id") @db.Uuid
+
+  // Entities involved
+  sourceEntityId String @map("source_entity_id") @db.Uuid
+  targetEntityId String @map("target_entity_id") @db.Uuid
+
+  // Relationship classification
+  type        RelationshipType @default(RELATES_TO)
+  description String?          @db.VarChar(500) // Natural language description
+
+  // Weight/strength of relationship (0-1)
+  weight Float @default(0.5)
+
+  // Confidence of extraction (0-1)
+  confidence Float @default(0.5)
+
+  // Evidence: which chunks support this relationship
+  evidenceChunkIds String[] @default([]) @map("evidence_chunk_ids")
+
+  // Metadata (additional context, timestamps, etc.)
+  metadata Json @default("{}")
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  org          Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  sourceEntity Entity       @relation("SourceEntity", fields: [sourceEntityId], references: [id], onDelete: Cascade)
+  targetEntity Entity       @relation("TargetEntity", fields: [targetEntityId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, sourceEntityId, targetEntityId, type])
+  @@index([orgId])
+  @@index([sourceEntityId])
+  @@index([targetEntityId])
+  @@index([type])
+  @@map("relationships")
+}
+
+// ============================================================================
+// SLACK INTEGRATION
+// ============================================================================
+
+model SlackWorkspace {
+  id          String   @id @default(uuid()) @db.Uuid
+  orgId       String   @map("org_id") @db.Uuid
+  teamId      String   @unique @map("team_id") @db.VarChar(20)   // Slack team ID (T12345...)
+  teamName    String   @map("team_name") @db.VarChar(255)
+  botUserId   String   @map("bot_user_id") @db.VarChar(20)       // Bot user ID (U12345...)
+
+  // OAuth tokens (encrypted at application layer)
+  accessToken String   @map("access_token") @db.Text
+
+  // Scopes granted during OAuth
+  scopes      String[] @default([])
+
+  // Installation tracking
+  installerId String?  @map("installer_id") @db.VarChar(20)      // Slack user who installed
+
+  // Status
+  isActive    Boolean  @default(true) @map("is_active")
+
+  // Timestamps
+  installedAt DateTime @default(now()) @map("installed_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  org          Organization         @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  userMappings SlackUserMapping[]
+  channels     SlackChannelConfig[] // Channels configured for indexing
+
+  @@index([orgId])
+  @@map("slack_workspaces")
+}
+
+model SlackUserMapping {
+  id               String  @id @default(uuid()) @db.Uuid
+  slackWorkspaceId String  @map("slack_workspace_id") @db.Uuid
+  slackUserId      String  @map("slack_user_id") @db.VarChar(20)  // Slack user ID (U12345...)
+  userId           String? @map("user_id") @db.VarChar(255)       // DocuMind user if linked
+
+  // Cached Slack user info
+  slackUsername    String? @map("slack_username") @db.VarChar(255)
+  slackDisplayName String? @map("slack_display_name") @db.VarChar(255)
+  slackEmail       String? @map("slack_email") @db.VarChar(255)
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  workspace SlackWorkspace @relation(fields: [slackWorkspaceId], references: [id], onDelete: Cascade)
+  user      User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@unique([slackWorkspaceId, slackUserId])
+  @@index([slackWorkspaceId])
+  @@index([userId])
+  @@index([slackEmail])
+  @@map("slack_user_mappings")
+}
+
+// Channel configuration for message indexing
+model SlackChannelConfig {
+  id               String  @id @default(uuid()) @db.Uuid
+  slackWorkspaceId String  @map("slack_workspace_id") @db.Uuid
+  channelId        String  @map("channel_id") @db.VarChar(20)    // Slack channel ID (C12345...)
+  channelName      String  @map("channel_name") @db.VarChar(255)
+
+  // Channel type
+  channelType      String  @default("public") @map("channel_type") @db.VarChar(20) // public, private, group_dm
+
+  // Indexing configuration
+  isEnabled        Boolean @default(true) @map("is_enabled")      // Whether to index this channel
+  indexRepliesOnly Boolean @default(true) @map("index_replies_only") // Only index threaded replies
+  minThreadLength  Int     @default(2) @map("min_thread_length")  // Min messages to index a thread
+
+  // Sync state
+  lastSyncAt       DateTime? @map("last_sync_at") @db.Timestamptz
+  lastMessageTs    String?   @map("last_message_ts") @db.VarChar(30) // Slack message timestamp
+
+  // Channel metadata
+  memberCount      Int?      @map("member_count")
+  topic            String?   @db.VarChar(500)
+  purpose          String?   @db.VarChar(500)
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  workspace      SlackWorkspace       @relation(fields: [slackWorkspaceId], references: [id], onDelete: Cascade)
+  indexedThreads SlackIndexedThread[]
+
+  @@unique([slackWorkspaceId, channelId])
+  @@index([slackWorkspaceId])
+  @@index([slackWorkspaceId, isEnabled])
+  @@map("slack_channel_configs")
+}
+
+// Indexed Slack threads (for deduplication and tracking)
+model SlackIndexedThread {
+  id               String  @id @default(uuid()) @db.Uuid
+  channelConfigId  String  @map("channel_config_id") @db.Uuid
+  threadTs         String  @map("thread_ts") @db.VarChar(30)       // Slack thread timestamp
+
+  // Thread metadata
+  parentMessageTs  String  @map("parent_message_ts") @db.VarChar(30) // Parent message timestamp
+  messageCount     Int     @default(0) @map("message_count")
+  participantCount Int     @default(0) @map("participant_count")
+
+  // Generated title (from first message or AI-generated)
+  title            String? @db.VarChar(500)
+
+  // Link to DocuMind document (when thread is indexed)
+  documentId       String? @map("document_id") @db.Uuid
+
+  // Processing state
+  status           String  @default("pending") @db.VarChar(20)     // pending, processing, indexed, failed
+  lastProcessedAt  DateTime? @map("last_processed_at") @db.Timestamptz
+  errorMessage     String? @map("error_message") @db.Text
+
+  // Thread metadata for graph
+  topicSummary     String? @map("topic_summary") @db.Text          // AI-generated topic summary
+  participants     String[] @default([])                           // Array of Slack user IDs
+
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  channelConfig SlackChannelConfig @relation(fields: [channelConfigId], references: [id], onDelete: Cascade)
+  document      Document?          @relation(fields: [documentId], references: [id], onDelete: SetNull)
+
+  @@unique([channelConfigId, threadTs])
+  @@index([channelConfigId])
+  @@index([documentId])
+  @@index([status])
+  @@map("slack_indexed_threads")
 }

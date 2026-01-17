@@ -6,6 +6,9 @@ import { searchRouter } from "./routers/search.js";
 import { settingsRouter } from "./routers/settings.js";
 import { apiKeysRouter } from "./routers/api-keys.js";
 import { billingRouter } from "./routers/billing.js";
+import { entitiesRouter } from "./routers/entities.js";
+import { queueRouter } from "./routers/queue.js";
+import { slackRouter } from "./routers/slack.js";
 
 export const appRouter = router({
   health: healthRouter,
@@ -15,6 +18,9 @@ export const appRouter = router({
   settings: settingsRouter,
   apiKeys: apiKeysRouter,
   billing: billingRouter,
+  entities: entitiesRouter,
+  queue: queueRouter,
+  slack: slackRouter,
 });
 
 export type AppRouter = typeof appRouter;

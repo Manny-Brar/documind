@@ -29,12 +29,23 @@ const icons = {
       <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
     </svg>
   ),
+  graph: (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <circle cx="6" cy="6" r="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="18" cy="6" r="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="6" cy="18" r="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="18" cy="18" r="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="12" cy="12" r="3" strokeLinecap="round" strokeLinejoin="round" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8.5 7.5l2 3M15.5 7.5l-2 3M8.5 16.5l2-3M15.5 16.5l-2-3" />
+    </svg>
+  ),
 };
 
 const navItems = [
   { href: "/dashboard", label: "Home", icon: icons.dashboard, description: "Overview and recent activity" },
   { href: "/documents", label: "My Files", icon: icons.documents, description: "Upload and manage documents" },
   { href: "/search", label: "Ask AI", icon: icons.search, description: "Search and ask questions" },
+  { href: "/entities", label: "Knowledge Graph", icon: icons.graph, description: "Explore entities and relationships" },
   { href: "/team", label: "Team", icon: icons.team, description: "Manage team members" },
   { href: "/settings", label: "Settings", icon: icons.settings, description: "Account preferences" },
 ];

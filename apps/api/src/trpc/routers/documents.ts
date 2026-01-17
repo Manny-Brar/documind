@@ -29,6 +29,12 @@ const SUPPORTED_MIME_TYPES: Record<string, string> = {
 // Max file size: 100MB
 const MAX_FILE_SIZE = 100 * 1024 * 1024;
 
+// Type for document groupBy result
+interface DocumentTypeResult {
+  fileType: string;
+  _count: number;
+}
+
 /**
  * Gets the file extension from a filename
  */
@@ -532,7 +538,7 @@ export const documentsRouter = router({
         failed: failedCount,
         storageUsedBytes: Number(membership.org.storageUsedBytes),
         storageQuotaBytes: Number(membership.org.storageQuotaBytes),
-        byType: byType.map((t) => ({
+        byType: byType.map((t: DocumentTypeResult) => ({
           type: t.fileType,
           count: t._count,
         })),

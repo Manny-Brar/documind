@@ -3,6 +3,34 @@ import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure } from "../trpc.js";
 import { searchWithFallback, searchDocuments, type SearchOptions } from "../../lib/vector-search.js";
 import { generateAnswer, type SourceChunk } from "../../lib/rag-generator.js";
+import {
+  getEntitySearchContext,
+  buildEntityEnrichedContext,
+  type EntityContext,
+  type RelatedEntity,
+} from "../../lib/entity-search.js";
+
+// Type for daily search stats
+interface DailySearchResult {
+  date: Date;
+  count: bigint;
+}
+
+// Type for search result
+interface SearchResultItem {
+  documentId: string;
+  filename: string;
+  score: number;
+  pageNumber?: number;
+}
+
+// Type for chunk result
+interface ChunkResult {
+  document_id: string;
+  content: string;
+  page_number: number | null;
+  chunk_index: number;
+}
 
 export const searchRouter = router({
   /**
@@ -16,6 +44,7 @@ export const searchRouter = router({
         queryType: z.enum(["search", "question", "followup"]).default("search"),
         limit: z.number().min(1).max(20).default(10),
         sessionId: z.string().optional(), // For followup questions
+        includeEntities: z.boolean().default(true), // Include entity context
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -84,6 +113,19 @@ export const searchRouter = router({
         // results = vertexResults;
       }
 
+      // Get entity context from matched documents
+      let entities: EntityContext[] = [];
+      let relatedEntities: RelatedEntity[] = [];
+      let entitySummary = "";
+
+      if (input.includeEntities && results.length > 0) {
+        const documentIds = [...new Set(results.map((r) => r.documentId))];
+        const entityContext = await getEntitySearchContext(ctx.prisma, input.orgId, documentIds);
+        entities = entityContext.entities;
+        relatedEntities = entityContext.relatedEntities;
+        entitySummary = entityContext.entitySummary;
+      }
+
       // Generate AI answer for question queries
       let answer: string | null = null;
       let answerSources: Array<{ documentId: string; pageNumber?: number; filename?: string; relevance?: number }> = [];
@@ -94,7 +136,11 @@ export const searchRouter = router({
         const chunksForRag = await getChunksForRag(ctx.prisma, input.orgId, results);
 
         if (chunksForRag.length > 0) {
-          const ragResult = await generateAnswer(input.query, chunksForRag);
+          // Build entity-enriched context for better answers
+          const entityContext = buildEntityEnrichedContext(entities, relatedEntities);
+
+          // Pass entity context as additional context (prepended to chunks)
+          const ragResult = await generateAnswer(input.query, chunksForRag, undefined, entityContext);
           answer = ragResult.answer;
           answerSources = ragResult.sources.map((s) => ({
             documentId: s.documentId,
@@ -129,6 +175,10 @@ export const searchRouter = router({
         tokensUsed,
         latencyMs,
         hasMoreResults: results.length === input.limit,
+        // Entity context
+        entities,
+        relatedEntities,
+        entitySummary,
       };
     }),
 
@@ -372,8 +422,8 @@ export const searchRouter = router({
                 (positiveFeedback / (positiveFeedback + negativeFeedback)) * 100
               )
             : null,
-        dailySearches: dailySearches.map((d) => ({
-          date: d.date,
+        dailySearches: dailySearches.map((d: DailySearchResult) => ({
+          date: d.date.toISOString().split('T')[0] ?? "",
           count: Number(d.count),
         })),
       };
@@ -396,7 +446,7 @@ async function getChunksForRag(
 ): Promise<SourceChunk[]> {
   if (results.length === 0) return [];
 
-  const documentIds = results.map((r) => r.documentId);
+  const documentIds = results.map((r: SearchResultItem) => r.documentId);
 
   try {
     // Query chunks for the matched documents
@@ -422,10 +472,10 @@ async function getChunksForRag(
 
     // Map chunks to SourceChunk format with scores from results
     const resultMap = new Map(
-      results.map((r) => [r.documentId, { filename: r.filename, score: r.score, pageNumber: r.pageNumber }])
+      results.map((r: SearchResultItem) => [r.documentId, { filename: r.filename, score: r.score, pageNumber: r.pageNumber }])
     );
 
-    return chunks.map((c) => {
+    return chunks.map((c: ChunkResult) => {
       const info = resultMap.get(c.document_id);
       return {
         documentId: c.document_id,

@@ -3,6 +3,23 @@ import { TRPCError } from "@trpc/server";
 import { createHash, randomBytes } from "crypto";
 import { router, protectedProcedure } from "../trpc.js";
 
+// Type for API key query result
+interface ApiKeyResult {
+  id: string;
+  name: string;
+  keyPrefix: string;
+  scopes: string[];
+  lastUsedAt: Date | null;
+  usageCount: bigint;
+  expiresAt: Date | null;
+  createdAt: Date;
+  createdBy: {
+    id: string;
+    name: string;
+    email: string;
+  } | null;
+}
+
 /**
  * Generates a secure API key
  * Format: dm_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxx (32 random chars)
@@ -55,7 +72,7 @@ export const apiKeysRouter = router({
         orderBy: { createdAt: "desc" },
       });
 
-      return apiKeys.map((key) => ({
+      return apiKeys.map((key: ApiKeyResult) => ({
         id: key.id,
         name: key.name,
         keyPrefix: key.keyPrefix,

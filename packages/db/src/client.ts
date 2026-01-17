@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Prisma } from "@prisma/client";
 
 // Global singleton for Prisma Client
 // Prevents multiple instances in development with hot reloading
@@ -20,4 +20,4 @@ if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;
 }
 
-export { PrismaClient };
+export { PrismaClient, Prisma };

@@ -79,7 +79,8 @@ function getConfig(): RagConfig {
 export async function generateAnswer(
   question: string,
   chunks: SourceChunk[],
-  config?: RagConfig
+  config?: RagConfig,
+  entityContext?: string
 ): Promise<RagAnswer> {
   const cfg = config ?? getConfig();
   const startTime = Date.now();
@@ -94,8 +95,11 @@ export async function generateAnswer(
     };
   }
 
-  // Assemble context from chunks
-  const context = assembleContext(chunks);
+  // Assemble context from chunks, optionally with entity context
+  let context = assembleContext(chunks);
+  if (entityContext) {
+    context = `${entityContext}\n\n---\n\n${context}`;
+  }
 
   // Generate answer based on provider
   switch (cfg.provider) {
@@ -141,6 +145,8 @@ function buildPrompt(question: string, context: string): string {
 - Be concise and direct in your answer
 - Reference specific sources when relevant (e.g., "According to Source 1...")
 - Do not make up information not present in the context
+- If Knowledge Graph context is provided, use entity and relationship information to provide richer, more connected answers
+- When mentioning entities, be precise about their relationships to other entities
 
 ## Context:
 ${context}

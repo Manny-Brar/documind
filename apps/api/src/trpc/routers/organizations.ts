@@ -1,7 +1,20 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
-import type { Prisma } from "@documind/db";
+import { Prisma } from "@documind/db";
 import { router, protectedProcedure } from "../trpc.js";
+
+// Type for membership query result
+interface MembershipResult {
+  role: string;
+  joinedAt: Date | null;
+  org: {
+    id: string;
+    name: string;
+    slug: string;
+    planId: string;
+    createdAt: Date;
+  };
+}
 
 /**
  * Generates a URL-safe slug from a string
@@ -67,7 +80,7 @@ export const organizationsRouter = router({
       const slug = await ensureUniqueSlug(ctx.prisma, baseSlug);
 
       // Create organization and membership in a transaction
-      const org = await ctx.prisma.$transaction(async (tx) => {
+      const org = await ctx.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
         const organization = await tx.organization.create({
           data: {
             name: input.name,
@@ -122,7 +135,7 @@ export const organizationsRouter = router({
       },
     });
 
-    return memberships.map((m) => ({
+    return memberships.map((m: MembershipResult) => ({
       id: m.org.id,
       name: m.org.name,
       slug: m.org.slug,
@@ -218,7 +231,7 @@ export const organizationsRouter = router({
     const baseSlug = generateSlug(`${userName}-workspace`);
     const slug = await ensureUniqueSlug(ctx.prisma, baseSlug);
 
-    const org = await ctx.prisma.$transaction(async (tx) => {
+    const org = await ctx.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const organization = await tx.organization.create({
         data: {
           name: `${userName}'s Workspace`,
