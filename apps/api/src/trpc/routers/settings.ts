@@ -415,4 +415,138 @@ export const settingsRouter = router({
         })),
       };
     }),
+
+  /**
+   * Accept an invitation to join an organization
+   * Can be called by authenticated or unauthenticated users
+   */
+  acceptInvitation: protectedProcedure
+    .input(z.object({ token: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      // Find the invitation by token
+      const membership = await ctx.prisma.membership.findFirst({
+        where: {
+          invitationToken: input.token,
+          status: "pending",
+        },
+        include: {
+          org: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            },
+          },
+          user: {
+            select: {
+              id: true,
+              email: true,
+            },
+          },
+        },
+      });
+
+      if (!membership) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Invitation not found or already used",
+        });
+      }
+
+      // Check if invitation has expired
+      if (membership.invitationExpires && membership.invitationExpires < new Date()) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "This invitation has expired. Please ask for a new invitation.",
+        });
+      }
+
+      // Verify the current user matches the invited user
+      // or if the invited user was a placeholder, update to current user
+      if (membership.userId !== ctx.user.id) {
+        // Check if invited user email matches current user email
+        if (membership.user.email !== ctx.user.email) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "This invitation was sent to a different email address",
+          });
+        }
+        // Same email, different user ID means placeholder was created
+        // Update the membership to use the actual logged-in user
+        await ctx.prisma.membership.update({
+          where: { id: membership.id },
+          data: { userId: ctx.user.id },
+        });
+      }
+
+      // Activate the membership
+      const activatedMembership = await ctx.prisma.membership.update({
+        where: { id: membership.id },
+        data: {
+          status: "active",
+          joinedAt: new Date(),
+          invitationToken: null, // Clear the token
+          invitationExpires: null,
+        },
+        include: {
+          org: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            },
+          },
+        },
+      });
+
+      return {
+        success: true,
+        organization: activatedMembership.org,
+        role: activatedMembership.role,
+      };
+    }),
+
+  /**
+   * Get invitation details by token (public - for showing org name before accepting)
+   */
+  getInvitation: protectedProcedure
+    .input(z.object({ token: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      const membership = await ctx.prisma.membership.findFirst({
+        where: {
+          invitationToken: input.token,
+          status: "pending",
+        },
+        include: {
+          org: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            },
+          },
+          invitedBy: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      });
+
+      if (!membership) {
+        return { valid: false, expired: false, organization: null, invitedBy: null, role: null };
+      }
+
+      const expired = membership.invitationExpires
+        ? membership.invitationExpires < new Date()
+        : false;
+
+      return {
+        valid: !expired,
+        expired,
+        organization: membership.org,
+        invitedBy: membership.invitedBy?.name || "A team member",
+        role: membership.role,
+      };
+    }),
 });
