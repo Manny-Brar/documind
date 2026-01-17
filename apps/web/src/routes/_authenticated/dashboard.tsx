@@ -99,26 +99,48 @@ function DashboardPage() {
         <h2 className="font-heading text-sm uppercase tracking-wider text-muted-foreground mb-4">
           Quick Actions
         </h2>
-        <Card variant="yellow" className="p-6">
-          <div className="flex flex-wrap gap-4">
-            <Link to="/documents">
-              <Button size="lg">
-                <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card variant="yellow" className="p-6">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 flex items-center justify-center border-2 border-black bg-white shadow-neo-sm shrink-0">
+                <svg className="w-6 h-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                 </svg>
-                Upload Document
-              </Button>
-            </Link>
-            <Link to="/search">
-              <Button variant="secondary" size="lg">
-                <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-lg mb-1">Upload Documents</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Add PDFs, Word docs, presentations, and more to your library
+                </p>
+                <Link to="/documents">
+                  <Button size="lg">
+                    Upload Files
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </Card>
+          <Card variant="blue" className="p-6">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 flex items-center justify-center border-2 border-black bg-white shadow-neo-sm shrink-0">
+                <svg className="w-6 h-6 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
-                Search Documents
-              </Button>
-            </Link>
-          </div>
-        </Card>
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-lg mb-1">Ask Questions</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Search across all your documents with AI-powered answers
+                </p>
+                <Link to="/search">
+                  <Button variant="secondary" size="lg">
+                    Start Searching
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </Card>
+        </div>
       </section>
 
       {/* Stats Overview */}
@@ -128,9 +150,9 @@ function DashboardPage() {
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <StatsCard
-            label="Documents"
+            label="Total Files"
             value={docStats?.total ?? 0}
-            trend={docStats?.indexed ? { value: docStats.indexed, label: "indexed" } : undefined}
+            trend={docStats?.indexed ? { value: docStats.indexed, label: "ready to search" } : undefined}
             variant="blue"
             icon={
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -151,9 +173,9 @@ function DashboardPage() {
             }
           />
           <StatsCard
-            label="Searches"
+            label="AI Searches"
             value={searchStats?.totalSearches ?? 0}
-            trend={searchStats?.questionsAsked ? { value: searchStats.questionsAsked, label: "questions asked" } : undefined}
+            trend={searchStats?.questionsAsked ? { value: searchStats.questionsAsked, label: "questions answered" } : undefined}
             variant="mint"
             icon={
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -235,22 +257,22 @@ function DashboardPage() {
                     <Badge
                       variant={
                         doc.indexStatus === "indexed"
-                          ? "blue"
+                          ? "success"
                           : doc.indexStatus === "failed"
-                          ? "pink"
-                          : "yellow"
+                          ? "error"
+                          : "warning"
                       }
                     >
-                      {doc.indexStatus}
+                      {doc.indexStatus === "indexed" ? "Ready" : doc.indexStatus === "failed" ? "Failed" : "Processing"}
                     </Badge>
                     <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button size="icon-sm" variant="ghost">
+                      <Button size="icon-sm" variant="ghost" title="View document">
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                           <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                         </svg>
                       </Button>
-                      <Button size="icon-sm" variant="ghost">
+                      <Button size="icon-sm" variant="ghost" title="Download document">
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                         </svg>
@@ -266,17 +288,22 @@ function DashboardPage() {
         {!isLoading && !hasDocuments && (
           <Card variant="lavender" className="p-8 text-center">
             <div className="max-w-md mx-auto">
-              <div className="w-16 h-16 mx-auto mb-4 flex items-center justify-center border-2 border-black bg-white shadow-neo">
-                <svg className="w-8 h-8 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <div className="w-20 h-20 mx-auto mb-6 flex items-center justify-center border-2 border-black bg-primary shadow-neo">
+                <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                 </svg>
               </div>
-              <h3 className="font-heading text-xl uppercase mb-2">No Documents Yet</h3>
-              <p className="text-muted-foreground mb-4">
-                Upload your first document to get started with AI-powered search.
+              <h3 className="font-heading text-2xl uppercase mb-3">Ready to Get Started?</h3>
+              <p className="text-muted-foreground mb-6 text-lg">
+                Upload your first file and start asking questions. It only takes a few seconds.
               </p>
               <Link to="/documents">
-                <Button>Upload Document</Button>
+                <Button size="lg" className="text-base">
+                  <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                  </svg>
+                  Upload Your First File
+                </Button>
               </Link>
             </div>
           </Card>
@@ -288,33 +315,51 @@ function DashboardPage() {
         <section>
           <Card variant="lavender">
             <CardHeader>
-              <CardTitle>Getting Started</CardTitle>
+              <CardTitle>How DocuMind Works</CardTitle>
+              <p className="text-sm text-muted-foreground mt-2">
+                Your AI-powered document assistant in 3 simple steps
+              </p>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
               <div className="flex items-start gap-4">
-                <Badge variant="yellow">1</Badge>
-                <div>
-                  <p className="font-bold">Upload your first document</p>
-                  <p className="text-sm text-muted-foreground">
-                    Drag and drop or click to upload PDF, DOCX, PPTX, and more
+                <div className="w-10 h-10 flex items-center justify-center border-2 border-black bg-primary text-white shadow-neo-sm shrink-0">
+                  <span className="font-heading text-lg font-bold">1</span>
+                </div>
+                <div className="flex-1">
+                  <p className="font-bold text-lg mb-1">Add Your Documents</p>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Upload files from your computer or connect cloud storage. We support PDFs, Word docs, spreadsheets, presentations, and more.
                   </p>
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant="outline" size="sm">PDF</Badge>
+                    <Badge variant="outline" size="sm">DOCX</Badge>
+                    <Badge variant="outline" size="sm">PPTX</Badge>
+                    <Badge variant="outline" size="sm">XLSX</Badge>
+                  </div>
                 </div>
               </div>
               <div className="flex items-start gap-4">
-                <Badge variant="blue">2</Badge>
-                <div>
-                  <p className="font-bold">Search with natural language</p>
-                  <p className="text-sm text-muted-foreground">
-                    Ask questions like "What were Q4 revenue numbers?"
+                <div className="w-10 h-10 flex items-center justify-center border-2 border-black bg-secondary text-white shadow-neo-sm shrink-0">
+                  <span className="font-heading text-lg font-bold">2</span>
+                </div>
+                <div className="flex-1">
+                  <p className="font-bold text-lg mb-1">Ask Questions Naturally</p>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    No complex queries needed. Just type questions like you're talking to a colleague.
                   </p>
+                  <div className="p-3 bg-white border-2 border-black rounded-sm text-sm italic">
+                    "What were the Q4 revenue numbers?"
+                  </div>
                 </div>
               </div>
               <div className="flex items-start gap-4">
-                <Badge variant="pink">3</Badge>
-                <div>
-                  <p className="font-bold">Get AI-powered answers</p>
+                <div className="w-10 h-10 flex items-center justify-center border-2 border-black bg-[#20A366] text-white shadow-neo-sm shrink-0">
+                  <span className="font-heading text-lg font-bold">3</span>
+                </div>
+                <div className="flex-1">
+                  <p className="font-bold text-lg mb-1">Get Instant Answers</p>
                   <p className="text-sm text-muted-foreground">
-                    Receive accurate answers grounded in your documents
+                    Our AI reads your documents and provides accurate, source-cited answers in seconds.
                   </p>
                 </div>
               </div>

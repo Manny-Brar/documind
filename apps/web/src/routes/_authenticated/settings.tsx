@@ -297,7 +297,7 @@ function SettingsPage() {
               <p className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Documents</p>
               <p className="font-mono text-2xl font-bold">{docStats?.total ?? 0}</p>
               <p className="text-sm text-muted-foreground">
-                {docStats?.indexed ?? 0} indexed
+                {docStats?.indexed ?? 0} ready to search
               </p>
             </div>
             <div className="p-4 border-2 border-black bg-white shadow-neo-sm">
@@ -386,7 +386,7 @@ function SettingsPage() {
               )}
             </div>
             <div className="p-4 border-2 border-black bg-white shadow-neo-sm">
-              <p className="text-sm font-bold uppercase tracking-wider text-muted-foreground">AI Tokens</p>
+              <p className="text-sm font-bold uppercase tracking-wider text-muted-foreground">AI Credits</p>
               <p className="font-mono text-2xl font-bold">
                 {formatNumber(apiUsage?.usage.llm.tokens ?? 0)}
               </p>
@@ -411,11 +411,11 @@ function SettingsPage() {
               )}
             </div>
             <div className="p-4 border-2 border-black bg-white shadow-neo-sm">
-              <p className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Embeddings</p>
+              <p className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Processing</p>
               <p className="font-mono text-2xl font-bold">
                 {formatNumber(apiUsage?.usage.embedding.tokens ?? 0)}
               </p>
-              <p className="text-sm text-muted-foreground">tokens used</p>
+              <p className="text-sm text-muted-foreground">credits used</p>
             </div>
             <div className="p-4 border-2 border-black bg-white shadow-neo-sm">
               <p className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Est. Cost</p>

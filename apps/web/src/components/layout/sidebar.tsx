@@ -32,11 +32,11 @@ const icons = {
 };
 
 const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: icons.dashboard },
-  { href: "/documents", label: "Documents", icon: icons.documents },
-  { href: "/search", label: "Search", icon: icons.search },
-  { href: "/team", label: "Team", icon: icons.team },
-  { href: "/settings", label: "Settings", icon: icons.settings },
+  { href: "/dashboard", label: "Home", icon: icons.dashboard, description: "Overview and recent activity" },
+  { href: "/documents", label: "My Files", icon: icons.documents, description: "Upload and manage documents" },
+  { href: "/search", label: "Ask AI", icon: icons.search, description: "Search and ask questions" },
+  { href: "/team", label: "Team", icon: icons.team, description: "Manage team members" },
+  { href: "/settings", label: "Settings", icon: icons.settings, description: "Account preferences" },
 ];
 
 interface SidebarProps {
@@ -70,16 +70,21 @@ export function Sidebar({ orgName = "My Workspace", planName = "Free Plan" }: Si
               key={item.href}
               to={item.href}
               className={cn(
-                "flex items-center gap-3 px-4 py-3 rounded-sm",
+                "group flex items-center gap-3 px-4 py-3 rounded-sm",
                 "font-medium text-sm transition-all duration-100",
                 "border-2 border-transparent",
+                "relative",
                 isActive
                   ? "bg-card border-border shadow-neo-sm translate-x-1"
                   : "hover:bg-sidebar-hover hover:translate-x-1"
               )}
+              title={item.description}
             >
               <span className={cn(isActive && "text-primary")}>{item.icon}</span>
               <span>{item.label}</span>
+              {isActive && (
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary" />
+              )}
             </Link>
           );
         })}
@@ -114,15 +119,19 @@ export function Sidebar({ orgName = "My Workspace", planName = "Free Plan" }: Si
           <Link
             to="/settings"
             className={cn(
-              "mt-3 w-full flex items-center justify-center gap-2 px-4 py-2 rounded-sm",
+              "mt-3 w-full flex items-center justify-center gap-2 px-4 py-3 rounded-sm",
               "bg-primary text-white border-2 border-border shadow-neo-sm",
               "font-heading text-xs font-bold uppercase tracking-wider",
               "transition-all duration-100",
               "hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-neo",
-              "active:translate-x-px active:translate-y-px active:shadow-neo-pressed"
+              "active:translate-x-px active:translate-y-px active:shadow-neo-pressed",
+              "animate-pulse"
             )}
           >
-            Upgrade
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            Upgrade Plan
           </Link>
         )}
       </div>

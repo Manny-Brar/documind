@@ -16,7 +16,7 @@ const badgeVariants = cva(
       variant: {
         default: "bg-primary text-primary-foreground shadow-neo-sm",
         secondary: "bg-white text-foreground shadow-neo-sm",
-        success: "bg-green-500 text-white shadow-neo-sm",
+        success: "bg-[#20A366] text-white shadow-neo-sm",  // Emerald green - clear success state
         warning: "bg-amber-400 text-black shadow-neo-sm",
         error: "bg-destructive text-destructive-foreground shadow-neo-sm",
         info: "bg-cyan-500 text-white shadow-neo-sm",

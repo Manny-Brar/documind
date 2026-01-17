@@ -445,13 +445,13 @@ function DocumentsPage() {
                   <Badge
                     variant={
                       doc.indexStatus === "indexed"
-                        ? "blue"
+                        ? "success"
                         : doc.indexStatus === "failed"
-                        ? "pink"
-                        : "yellow"
+                        ? "error"
+                        : "warning"
                     }
                   >
-                    {doc.indexStatus}
+                    {doc.indexStatus === "indexed" ? "Ready" : doc.indexStatus === "failed" ? "Failed" : "Processing"}
                   </Badge>
 
                   {/* Actions */}
